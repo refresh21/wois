@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // Upload file to Google Drive
 export async function POST(req: NextRequest) {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000)
+    const timeout = setTimeout(() => controller.abort(), 60000)
 
     try {
         const formData = await req.formData()
