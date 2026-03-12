@@ -273,8 +273,8 @@ export default function NoteDetailPage() {
         try {
             const pdfBlob = await new Promise<Blob>((resolve, reject) => {
                 const timeout = setTimeout(() => {
-                    reject(new Error('PDF generation timed out (30s)'))
-                }, 30000)
+                    reject(new Error('PDF generation timed out (60s)'))
+                }, 60000)
 
                 try {
                     const pdfMake = require('pdfmake/build/pdfmake')
@@ -294,16 +294,9 @@ export default function NoteDetailPage() {
                         }
                     }
                     const pdf = pdfMake.createPdf(docDef as any) as any
-                    pdf.getBase64((base64String: string) => {
+                    pdf.getBlob((blob: Blob) => {
                         clearTimeout(timeout)
-                        const binaryStr = atob(base64String);
-                        const len = binaryStr.length;
-                        const bytes = new Uint8Array(len);
-                        for (let i = 0; i < len; i++) {
-                            bytes[i] = binaryStr.charCodeAt(i);
-                        }
-                        const blob = new Blob([bytes], { type: 'application/pdf' })
-                        console.log('PDF generated successfully via getBase64')
+                        console.log('PDF generated successfully via getBlob')
                         resolve(blob)
                     })
                 } catch (e) {

@@ -1,6 +1,10 @@
 -- Run this SQL in the Supabase SQL Editor
 -- https://lqhxkdgtlryxurqjerop.supabase.co → SQL Editor → New Query
 
+-- !!! EĞER "user_id column not found" HATASI ALIYORSANIZ AŞAĞIDAKİ 2 SATIRI ÇALIŞTIRIN !!!
+-- ALTER TABLE notes ADD COLUMN IF NOT EXISTS user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE;
+-- NOTIFY pgrst, 'reload schema';
+
 -- 1. Notes table
 CREATE TABLE IF NOT EXISTS notes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
