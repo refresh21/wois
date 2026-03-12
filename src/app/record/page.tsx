@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastContext'
+import { sanitizeFilename } from '@/lib/utils'
 
 export default function RecordPage() {
     const router = useRouter()
@@ -194,8 +195,9 @@ export default function RecordPage() {
         try {
             const transcriptText = await transcribeAudio(file)
             if (transcriptText === null) return;
-
-            const fileName = `upload_${Date.now()}_${file.name}`
+            
+            const sanitizedName = sanitizeFilename(file.name)
+            const fileName = `upload_${Date.now()}_${sanitizedName}`
             const { data: uploadData } = await supabase.storage
                 .from('recordings')
                 .upload(fileName, file, { contentType: file.type })

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import { sanitizeFilename } from '@/lib/utils'
 import { Suspense } from 'react'
 import { useToast } from '@/components/ToastContext'
 
@@ -54,7 +55,8 @@ function UploadContent() {
                 const file = files[i]
                 const isAudio = file.type.startsWith('audio/')
                 const bucket = isAudio ? 'recordings' : 'media'
-                const fileName = `${Date.now()}_${file.name}`
+                const sanitizedName = sanitizeFilename(file.name)
+                const fileName = `${Date.now()}_${sanitizedName}`
                 const { data, error } = await supabase.storage.from(bucket).upload(fileName, file, { contentType: file.type })
                 if (error) { console.error('Upload error:', error); continue }
                 const publicUrl = supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl
