@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import Link from 'next/link'
 import { useSidebar } from '@/components/SidebarContext'
 import { useLanguage } from '@/components/LanguageContext'
 
@@ -44,7 +44,7 @@ export default function Header() {
 
             {/* Logo area - only visible when sidebar is collapsed or on mobile */}
             {(!isOpen || isMobile) && (
-                <div style={{ 
+                <Link href="/" style={{ 
                     position: 'absolute', 
                     left: '50%', 
                     transform: 'translateX(-50%)',
@@ -54,10 +54,12 @@ export default function Header() {
                     color: 'var(--primary)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.25rem'
+                    gap: '0.25rem',
+                    textDecoration: 'none',
+                    cursor: 'pointer'
                 }}>
                     Wois
-                </div>
+                </Link>
             )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
