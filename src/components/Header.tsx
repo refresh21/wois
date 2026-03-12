@@ -49,19 +49,13 @@ export default function Header() {
                     left: '50%', 
                     transform: 'translateX(-50%)',
                     fontWeight: 900,
-                    fontSize: '1.5rem',
+                    fontSize: '1.875rem',
                     letterSpacing: '-0.05em',
                     color: 'var(--primary)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.25rem'
                 }}>
-                    <span 
-                        className="material-symbols-outlined" 
-                        style={{ fontSize: '1.75rem', fontWeight: 'bold' }}
-                    >
-                        graphic_eq
-                    </span>
                     Wois
                 </div>
             )}

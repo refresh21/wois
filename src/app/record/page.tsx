@@ -318,7 +318,7 @@ export default function RecordPage() {
                                     <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Sürükleyip bırak veya tıkla</p>
                                     <p style={{ color: 'var(--text-light)', fontSize: '0.75rem', marginTop: '0.5rem' }}>MP3, WAV, M4A, WebM, OGG, FLAC</p>
                                 </div>
-                                <input id="audio-upload" type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleUploadAudio} />
+                                <input id="audio-upload" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm" style={{ display: 'none' }} onChange={handleUploadAudio} />
                                 {(transcribing || saving) && (
                                     <div style={{ marginTop: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                                         <span className="material-symbols-outlined animate-pulse">hourglass_empty</span>

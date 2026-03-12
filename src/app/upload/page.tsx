@@ -135,7 +135,7 @@ function UploadContent() {
                             </h3>
                             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{t('upload.or_click')}</p>
                         </div>
-                        <input ref={fileInputRef} type="file" accept={isMediaMode ? 'image/*,video/*' : 'audio/*,image/*,video/*'} multiple style={{ display: 'none' }} onChange={(e) => handleFileSelect(e.target.files)} />
+                        <input ref={fileInputRef} type="file" accept={isMediaMode ? 'image/*,video/*' : 'audio/*,image/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.webm'} multiple style={{ display: 'none' }} onChange={(e) => handleFileSelect(e.target.files)} />
 
                         {files.length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
