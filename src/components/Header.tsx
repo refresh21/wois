@@ -1,31 +1,44 @@
 'use client'
 
 import Link from 'next/link'
-import { useTheme } from '@/components/ThemeContext'
+import { useSidebar } from '@/components/SidebarContext'
 
 export default function Header() {
-    const { theme, toggleTheme } = useTheme()
+    const { isOpen, toggleSidebar, isMobile } = useSidebar()
 
     return (
         <header className="top-header">
-            <div className="search-container">
-                <span className="material-symbols-outlined">search</span>
-                <input
-                    className="search-input"
-                    placeholder="Search voice notes..."
-                    type="text"
-                />
+            <div className="header-left">
+                <button 
+                    className="btn-icon" 
+                    onClick={toggleSidebar}
+                    aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
+                >
+                    <span className="material-symbols-outlined">
+                        {isOpen ? 'menu_open' : 'menu'}
+                    </span>
+                </button>
+                
+                {!isMobile && (
+                    <div className="search-container">
+                        <span className="material-symbols-outlined">search</span>
+                        <input
+                            className="search-input"
+                            placeholder="Search voice notes..."
+                            type="text"
+                        />
+                    </div>
+                )}
+            </div>
+
+            <div className={`header-center ${!isOpen || isMobile ? 'visible' : ''}`}>
+                <span className="logo-text">Wois</span>
             </div>
 
             <div className="header-actions">
-                <button className="btn-icon" onClick={toggleTheme} title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
-                    <span className="material-symbols-outlined">
-                        {theme === 'light' ? 'dark_mode' : 'light_mode'}
-                    </span>
-                </button>
                 <Link href="/record" className="btn-primary">
                     <span className="material-symbols-outlined">add</span>
-                    New Record
+                    {isMobile ? '' : 'New Record'}
                 </Link>
             </div>
         </header>
