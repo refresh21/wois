@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Wois Recording - Monochrome Edition</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#000000",
+                        "background-light": "#f7f7f7",
+                        "background-dark": "#191919",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .waveform-bar {
+            transition: height 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-slate-800 px-6 md:px-20 py-4 bg-white dark:bg-black">
+<div class="flex items-center gap-3">
+<div class="flex items-center justify-center bg-primary text-white p-1.5 rounded">
+<span class="material-symbols-outlined text-lg">graphic_eq</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight">Wois Recording</h2>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center rounded-lg h-10 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</header>
+<main class="flex flex-1 justify-center py-8">
+<div class="layout-content-container flex flex-col max-w-[800px] flex-1 px-4">
+<!-- Timer Display -->
+<div class="text-center mb-8">
+<div class="inline-flex items-center gap-2 mb-1">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
+</span>
+<span class="text-xs font-bold uppercase tracking-widest text-slate-500">Live Recording</span>
+</div>
+<h3 class="text-primary dark:text-white text-6xl font-black leading-tight tabular-nums">00:42:15</h3>
+</div>
+<!-- Visualizer Area -->
+<div class="p-2 mb-8">
+<div class="relative flex flex-col items-center justify-center bg-black aspect-video rounded-xl overflow-hidden shadow-2xl" data-alt="Professional studio microphone in a dark recording booth" style='background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://lh3.googleusercontent.com/aida-public/AB6AXuDKI-NmNLO2n_DzHGr-qfYMz7_Eal4D6ZWFuM2xDfOFJked8yPCILduN65vEmBnme1WN1urR8Xz19F2IV8J29r26T3tJsCgsFSQncrI7d2LwkSru-hTvCmgXqa_4ax2I9aohHusjeHfYkr4kJ49XUvIm7m4USarmdhJkWRardcTkq9iquEKbWPQZYV4Npx-3i9RRT7MTgZ1Bkm8ZqU5hJLnvCpGcw8X6hMm6RX3iUM24Xab_T_Pf-huwQqoxewa02hZ77W8_62gR4cT"); background-size: cover; background-position: center;'>
+<!-- Waveform Overlay -->
+<div class="absolute bottom-0 left-0 w-full h-32 flex items-end justify-center gap-1 px-8 pb-8">
+<div class="w-1 bg-white h-12 rounded-full opacity-40"></div>
+<div class="w-1 bg-white h-16 rounded-full opacity-50"></div>
+<div class="w-1 bg-white h-24 rounded-full opacity-70"></div>
+<div class="w-1 bg-white h-32 rounded-full opacity-100"></div>
+<div class="w-1 bg-white h-28 rounded-full opacity-90"></div>
+<div class="w-1 bg-white h-20 rounded-full opacity-60"></div>
+<div class="w-1 bg-white h-24 rounded-full opacity-80"></div>
+<div class="w-1 bg-white h-16 rounded-full opacity-50"></div>
+<div class="w-1 bg-white h-12 rounded-full opacity-40"></div>
+</div>
+<button class="z-10 flex items-center justify-center rounded-full size-20 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/30 transition-all">
+<span class="material-symbols-outlined !text-4xl">pause</span>
+</button>
+</div>
+</div>
+<!-- Audio Stats -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 px-4">
+<div class="flex flex-col gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+<div class="flex justify-between items-center">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider">Input Gain</p>
+<span class="text-xs font-medium text-slate-500">65%</span>
+</div>
+<div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary dark:bg-white" style="width: 65%;"></div>
+</div>
+</div>
+<div class="flex flex-col gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+<div class="flex justify-between items-center">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider">Storage Used</p>
+<span class="text-xs font-medium text-slate-500">12.4 MB</span>
+</div>
+<div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary dark:bg-white" style="width: 22%;"></div>
+</div>
+</div>
+</div>
+<!-- Live Transcription Area -->
+<div class="px-4 mb-8">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-widest">Live Transcription</h4>
+<span class="text-[10px] bg-primary text-white dark:bg-white dark:text-black px-1.5 py-0.5 rounded font-bold uppercase">Beta</span>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm min-h-[160px] flex flex-col gap-3">
+<p class="text-slate-400 dark:text-slate-500 text-sm leading-relaxed">...so when we think about the architecture of modern sound design, we have to consider the relationship between the listener and the space.</p>
+<p class="text-slate-900 dark:text-slate-100 text-lg leading-relaxed font-medium">This monochrome interface really helps focus the user's attention on the content rather than the controls.</p>
+<div class="flex gap-1 items-center">
+<div class="h-1.5 w-1.5 rounded-full bg-primary dark:bg-white"></div>
+<div class="h-1.5 w-1.5 rounded-full bg-primary/40 dark:bg-white/40"></div>
+<div class="h-1.5 w-1.5 rounded-full bg-primary/20 dark:bg-white/20"></div>
+</div>
+</div>
+</div>
+<!-- Controls & Export -->
+<div class="flex flex-col md:flex-row gap-4 px-4 pb-12">
+<button class="flex-1 flex items-center justify-center gap-3 rounded-xl h-14 bg-primary text-white dark:bg-white dark:text-black font-bold text-base hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined">stop_circle</span>
+                            Finish Recording
+                        </button>
+<div class="flex gap-4">
+<button class="flex items-center justify-center rounded-xl h-14 w-14 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">download</span>
+</button>
+<button class="flex items-center justify-center rounded-xl h-14 w-14 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">share</span>
+</button>
+<button class="flex items-center justify-center rounded-xl h-14 w-14 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Action Bar -->
+<footer class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-4 flex justify-center gap-8">
+<div class="flex items-center gap-2 text-slate-500">
+<span class="material-symbols-outlined text-sm">mic</span>
+<span class="text-xs font-medium">Internal Mic</span>
+</div>
+<div class="flex items-center gap-2 text-slate-500">
+<span class="material-symbols-outlined text-sm">high_quality</span>
+<span class="text-xs font-medium">48kHz / 24-bit</span>
+</div>
+<div class="flex items-center gap-2 text-slate-500">
+<span class="material-symbols-outlined text-sm">cloud_upload</span>
+<span class="text-xs font-medium">Auto-sync ON</span>
+</div>
+</footer>
+</div>
+</div>
+</body></html>

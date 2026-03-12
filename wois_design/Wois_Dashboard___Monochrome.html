@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Wois Dashboard - Monochrome Edition</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#000000",
+                        "background-light": "#f7f7f7",
+                        "background-dark": "#191919",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        
+        .sidebar-item-active {
+            background-color: #000000;
+            color: #ffffff;
+        }
+        
+        .hover-card:hover {
+            border-color: #000000;
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark flex flex-col">
+<div class="p-6">
+<div class="flex items-center gap-3 mb-8">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-xl">audio_magic_eraser</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight uppercase">Wois</h1>
+</div>
+<nav class="space-y-1">
+<a class="sidebar-item-active flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">mic</span>
+<span class="text-sm font-medium">Voice Notes</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">extension</span>
+<span class="text-sm font-medium">Integrations</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-sm font-medium">Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 p-2">
+<div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Profile picture of a professional user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB098U1TLFchhEoBSQ5To7yG3DIuPMEYcBFmOzcBcpIN30bPrp4lzOLOfe9SGTJaUjaVp9MJduMY7XHKKX_SUeWFZCdiXwZpX_DlhQbYzGQmCHgssloexxpUiO0y8GrIAjEQ0xB9Elxd3aDBuJ0OhCwBoL4MT9gUS4WfpeRpLX3s-McJtS7zXy9Pz944jNEdgZsz5bd7oaSj4ahNI2aon84vi-osKrnTKatW4eJWJTZxa5hRX3FzhL4e6ib3s6BEoPZN1th2hMzEOy0"/>
+</div>
+<div class="flex flex-col min-w-0">
+<p class="text-sm font-semibold truncate">Alex Thorne</p>
+<p class="text-xs text-slate-500 truncate">Premium Member</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 ml-auto cursor-pointer">logout</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-background-dark/50">
+<!-- Header -->
+<header class="sticky top-0 z-10 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-8 py-4 flex items-center justify-between">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-white/5 border-none rounded-lg text-sm focus:ring-1 focus:ring-primary" placeholder="Search voice notes..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm">add</span>
+                    New Record
+                </button>
+</div>
+</header>
+<div class="p-8 space-y-8 max-w-7xl mx-auto">
+<!-- Welcome -->
+<div class="animate-fade-in-up">
+<h2 class="text-3xl font-bold tracking-tight">Good morning, Alex.</h2>
+<p class="text-slate-500 mt-1">Here is a summary of your voice activity today.</p>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="animate-fade-in-up delay-100 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 hover-card">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-slate-400">keyboard_voice</span>
+<span class="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">THIS WEEK</span>
+</div>
+<p class="text-slate-500 text-sm font-medium">Total Recordings</p>
+<h3 class="text-2xl font-bold mt-1">1,284</h3>
+<div class="mt-4 flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="text-primary">+12.5%</span>
+</div>
+</div>
+<div class="animate-fade-in-up delay-200 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 hover-card">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-slate-400">cloud_done</span>
+<span class="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">STORAGE</span>
+</div>
+<p class="text-slate-500 text-sm font-medium">Storage Used</p>
+<h3 class="text-2xl font-bold mt-1">42.5 GB</h3>
+<div class="mt-4 w-full bg-slate-100 dark:bg-white/5 h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[65%]"></div>
+</div>
+</div>
+<div class="animate-fade-in-up delay-300 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 hover-card">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-slate-400">link</span>
+<span class="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">ACTIVE</span>
+</div>
+<p class="text-slate-500 text-sm font-medium">Connected Apps</p>
+<h3 class="text-2xl font-bold mt-1">12</h3>
+<div class="mt-4 flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-slate-400">
+<span>No changes since yesterday</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Recent Voice Notes -->
+<div class="lg:col-span-2 space-y-4">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-xl font-bold">Recent Voice Notes</h3>
+<a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">View all</a>
+</div>
+<div class="space-y-3">
+<!-- List Item -->
+<div class="animate-fade-in-up bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 group cursor-pointer hover:border-primary/50 transition-all">
+<div class="size-12 bg-slate-100 dark:bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">play_arrow</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-semibold text-sm truncate">Product Strategy Meeting - Transcription</h4>
+<p class="text-xs text-slate-400">May 24, 2024 • 12:45 • High Fidelity</p>
+</div>
+<div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"><span class="material-symbols-outlined text-lg">download</span></button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"><span class="material-symbols-outlined text-lg">share</span></button>
+</div>
+</div>
+<div class="animate-fade-in-up delay-100 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 group cursor-pointer hover:border-primary/50 transition-all">
+<div class="size-12 bg-slate-100 dark:bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">play_arrow</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-semibold text-sm truncate">Morning Thoughts on UI Trends</h4>
+<p class="text-xs text-slate-400">May 23, 2024 • 04:12 • Standard</p>
+</div>
+<div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"><span class="material-symbols-outlined text-lg">download</span></button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"><span class="material-symbols-outlined text-lg">share</span></button>
+</div>
+</div>
+<div class="animate-fade-in-up delay-200 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 group cursor-pointer hover:border-primary/50 transition-all">
+<div class="size-12 bg-slate-100 dark:bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">play_arrow</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-semibold text-sm truncate">Client Call: Feedback session</h4>
+<p class="text-xs text-slate-400">May 22, 2024 • 34:10 • Lossless</p>
+</div>
+<div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"><span class="material-symbols-outlined text-lg">download</span></button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"><span class="material-symbols-outlined text-lg">share</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Integrations Panel -->
+<div class="space-y-4">
+<h3 class="text-xl font-bold">Integrations</h3>
+<div class="animate-fade-in-up bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-6">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-slate-100 dark:bg-white/5 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-600">description</span>
+</div>
+<div>
+<p class="text-sm font-semibold">Notion</p>
+<p class="text-xs text-slate-400">Sync transcripts</p>
+</div>
+</div>
+<div class="w-10 h-5 bg-primary rounded-full relative cursor-pointer">
+<div class="absolute right-0.5 top-0.5 size-4 bg-white rounded-full"></div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-slate-100 dark:bg-white/5 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-600">mail</span>
+</div>
+<div>
+<p class="text-sm font-semibold">Slack</p>
+<p class="text-xs text-slate-400">Push to channels</p>
+</div>
+</div>
+<div class="w-10 h-5 bg-primary rounded-full relative cursor-pointer">
+<div class="absolute right-0.5 top-0.5 size-4 bg-white rounded-full"></div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-slate-100 dark:bg-white/5 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-600">storage</span>
+</div>
+<div>
+<p class="text-sm font-semibold">Google Drive</p>
+<p class="text-xs text-slate-400">Auto-backup</p>
+</div>
+</div>
+<div class="w-10 h-5 bg-slate-200 dark:bg-white/10 rounded-full relative cursor-pointer">
+<div class="absolute left-0.5 top-0.5 size-4 bg-white dark:bg-slate-600 rounded-full"></div>
+</div>
+</div>
+<button class="w-full py-2.5 text-sm font-bold border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                            Manage All Apps
+                        </button>
+</div>
+<!-- Audio Visualization Card -->
+<div class="animate-fade-in-up delay-300 bg-primary text-white p-6 rounded-xl overflow-hidden relative group cursor-pointer">
+<div class="relative z-10">
+<p class="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">PRO FEATURE</p>
+<h4 class="text-lg font-bold">AI Summarization</h4>
+<p class="text-white/70 text-sm mt-2">Get concise summaries of your hour-long meetings instantly.</p>
+<button class="mt-4 bg-white text-primary px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-slate-100 transition-colors">Upgrade Plan</button>
+</div>
+<!-- Abstract Wave Pattern -->
+<div class="absolute bottom-0 right-0 w-32 h-32 opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+<svg class="w-full h-full fill-white" viewbox="0 0 100 100">
+<path d="M0,50 Q25,0 50,50 T100,50 L100,100 L0,100 Z"></path>
+</svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

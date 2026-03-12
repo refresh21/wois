@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#000000",
+                        "background-light": "#f7f7f7",
+                        "background-dark": "#191919",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-x-hidden max-w-md mx-auto">
+<!-- Top Navigation -->
+<div class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800">
+<div class="text-slate-900 dark:text-slate-100 flex size-12 shrink-0 items-center cursor-pointer">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 text-center">Meeting Notes</h2>
+<div class="flex w-12 items-center justify-end">
+<button class="flex items-center justify-center rounded-lg h-12 bg-transparent text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined">share</span>
+</button>
+</div>
+</div>
+<!-- Hero Section -->
+<div class="@container">
+<div class="px-4 py-4">
+<div class="bg-cover bg-center flex flex-col justify-end overflow-hidden bg-slate-200 dark:bg-slate-800 rounded-xl min-h-[200px] relative" data-alt="Modern workspace with laptops and coffee" style='background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 60%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuC-ayM3CoU78l4EvDR6LBT4r4RfiKfUxtAyt1Ej8seUev-Jmz91lTychB-FCW3NvAJovpWSypPbIQazX9bYhmniQkNVD8gfcL0V-B0Kd6pmBxOs_yLFsfJsSHHEstyt4X3_nkpbVjP-jnk_vWiE1HQ06rTyuJ8qXNfbBTIp21t2rxW5JC8fQ5jnAJ2T85ngeOyiAx7W_fz_nPr0KSnfGZLkdhbM0y1O5E7-r2MGHfJZDJ-T1iUY3TXESS3_6SRoRIWKOC1WFwuHs_QN");'>
+<div class="flex p-4 flex-col">
+<span class="text-white/70 text-xs font-medium uppercase tracking-widest mb-1">Project Phoenix</span>
+<p class="text-white text-2xl font-bold leading-tight">Wois AI Intelligence Roadmap</p>
+<p class="text-white/80 text-sm mt-1">Oct 12, 2023 • 42 mins</p>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Summary Section -->
+<div class="px-4 pt-4">
+<h2 class="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight tracking-tight mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary dark:text-white">auto_awesome</span>
+                AI Summary
+            </h2>
+<div class="space-y-3">
+<!-- Executive Summary -->
+<div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-start gap-4">
+<div class="flex flex-col gap-1">
+<p class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Executive Summary</p>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-normal leading-relaxed mt-1">
+                                The team aligned on the primary Q4 objectives focusing on AI integration. Identified key resource gaps in the backend engineering squad for the upcoming sprint cycle.
+                            </p>
+</div>
+</div>
+</div>
+<!-- Key Decisions -->
+<div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex flex-col gap-1">
+<p class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Key Decisions</p>
+<ul class="mt-2 space-y-2">
+<li class="flex gap-2 text-sm text-slate-600 dark:text-slate-400">
+<span class="text-primary dark:text-white font-bold">•</span>
+                                Approved $20k additional budget for infrastructure scaling.
+                            </li>
+<li class="flex gap-2 text-sm text-slate-600 dark:text-slate-400">
+<span class="text-primary dark:text-white font-bold">•</span>
+                                Shifted Q3 launch date to October 15th for additional QA.
+                            </li>
+</ul>
+</div>
+</div>
+<!-- Next Steps -->
+<div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex flex-col gap-1">
+<p class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Next Steps</p>
+<div class="mt-3 space-y-3">
+<div class="flex items-center gap-3">
+<div class="size-5 rounded border border-slate-300 dark:border-slate-600 flex items-center justify-center"></div>
+<p class="text-sm text-slate-600 dark:text-slate-400">Sarah to hire two senior Node.js devs</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="size-5 rounded bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[16px]">check</span>
+</div>
+<p class="text-sm text-slate-400 line-through">Draft technical specification for API</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Transcript Section -->
+<div class="px-4 py-8 mb-32">
+<h2 class="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight tracking-tight mb-6">Full Transcript</h2>
+<div class="space-y-6">
+<!-- Speaker 1 -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-primary dark:text-white uppercase tracking-wider">Alex Rivers</span>
+<span class="text-[10px] text-slate-400">00:12</span>
+</div>
+<p class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+                        Alright everyone, let's dive into the roadmap. Our main goal for this quarter is to make the AI features more intuitive. We've noticed users are struggling with the initial prompt engineering.
+                    </p>
+</div>
+<!-- Speaker 2 -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sarah Chen</span>
+<span class="text-[10px] text-slate-400">02:45</span>
+</div>
+<p class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+                        I agree. From the engineering side, we need to optimize our vector database queries before we can launch the new semantic search functionality. Currently, latency is around 800ms.
+                    </p>
+</div>
+<!-- Speaker 1 -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-primary dark:text-white uppercase tracking-wider">Alex Rivers</span>
+<span class="text-[10px] text-slate-400">05:20</span>
+</div>
+<p class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+                        Understood. Do we have enough resources to hit that target by October?
+                    </p>
+</div>
+</div>
+</div>
+<!-- Audio Player Sticky Bottom -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-4 pb-8 z-20">
+<div class="flex flex-col gap-3">
+<!-- Progress Bar -->
+<div class="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden relative">
+<div class="bg-primary dark:bg-white h-full w-[35%] rounded-full"></div>
+</div>
+<div class="flex justify-between text-[10px] text-slate-500 font-medium">
+<span>14:20</span>
+<span>42:00</span>
+</div>
+<!-- Controls -->
+<div class="flex items-center justify-between px-6">
+<button class="text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-[28px]">replay_10</span>
+</button>
+<button class="bg-primary dark:bg-white text-white dark:text-black size-14 rounded-full flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-[32px] fill-current">play_arrow</span>
+</button>
+<button class="text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-[28px]">forward_30</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

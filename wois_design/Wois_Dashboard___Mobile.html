@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Wois - Voice Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#000000",
+                        "background-light": "#f7f7f7",
+                        "background-dark": "#191919",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen font-display">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="bg-primary text-white p-1 rounded">
+<span class="material-symbols-outlined text-2xl">waves</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight">Wois</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-700 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile avatar close up" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfqQJ5tXir1IEN_JCE_V-EsQaWwEcQWNBvaoSHerf5wcxVIWFcDHMm3en-FgsbzJ9PXF2-nl8FOyyejsM_-qT6IOPkd8qE3EL4vdqV7b6XEU_weTJMVmtkQM0TkjpgFGIzadR4C4jk6V-d0vMLmC4saee-jGT7uV1jX9zZxfly_eoUrhSF7XClxivsVi7ByCSiMyt3B1ENhEgyzOYNvr10DD2SjqVy2ak0RIKf-ncrmKlq28EJv0xYfxY7MxpgqozgvAfrnKKUdkkl"/>
+</div>
+</div>
+</div>
+</header>
+<main class="pb-32">
+<!-- Dashboard Stats -->
+<section class="p-6">
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<span class="material-symbols-outlined text-slate-400">mic_none</span>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">+12%</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Total Records</p>
+<p class="text-2xl font-bold mt-1">128</p>
+</div>
+<div class="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<span class="material-symbols-outlined text-slate-400">timer</span>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">+5%</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Voice Hours</p>
+<p class="text-2xl font-bold mt-1">42.5h</p>
+</div>
+</div>
+</section>
+<!-- Voice Activity Chart -->
+<section class="px-6 mb-8">
+<div class="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-end mb-6">
+<div>
+<h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Voice Activity</h3>
+<p class="text-2xl font-bold">Last 7 Days</p>
+</div>
+<div class="text-right">
+<p class="text-xs text-slate-400">Mon - Sun</p>
+</div>
+</div>
+<div class="flex items-end justify-between h-32 gap-2">
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-sm relative overflow-hidden" style="height: 60%">
+<div class="absolute bottom-0 w-full bg-primary/20 dark:bg-white/10 h-full"></div>
+</div>
+<span class="text-[10px] font-bold text-slate-400">M</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-sm" style="height: 35%"></div>
+<span class="text-[10px] font-bold text-slate-400">T</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-sm" style="height: 85%"></div>
+<span class="text-[10px] font-bold text-slate-400">W</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-primary dark:bg-white rounded-t-sm" style="height: 100%"></div>
+<span class="text-[10px] font-bold text-slate-900 dark:text-white">T</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-sm" style="height: 45%"></div>
+<span class="text-[10px] font-bold text-slate-400">F</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-sm" style="height: 25%"></div>
+<span class="text-[10px] font-bold text-slate-400">S</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-sm" style="height: 40%"></div>
+<span class="text-[10px] font-bold text-slate-400">S</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Integrations Horizontal Scroll -->
+<section class="mb-8">
+<div class="px-6 mb-3 flex justify-between items-center">
+<h3 class="font-bold text-lg">Integrations</h3>
+<button class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Manage</button>
+</div>
+<div class="flex gap-4 overflow-x-auto px-6 no-scrollbar">
+<div class="flex-none w-40 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300">description</span>
+</div>
+<div class="text-center">
+<p class="text-sm font-bold">Notion</p>
+<p class="text-[10px] text-emerald-500 font-medium">Connected</p>
+</div>
+</div>
+<div class="flex-none w-40 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300">chat</span>
+</div>
+<div class="text-center">
+<p class="text-sm font-bold">Slack</p>
+<p class="text-[10px] text-slate-400 font-medium">Offline</p>
+</div>
+</div>
+<div class="flex-none w-40 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined text-slate-400">add</span>
+</div>
+<div class="text-center">
+<p class="text-sm font-bold">Add New</p>
+<p class="text-[10px] text-slate-400 font-medium">Explore apps</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Recent Voice Notes -->
+<section class="px-6">
+<div class="mb-4 flex justify-between items-center">
+<h3 class="font-bold text-lg">Recent Notes</h3>
+<button class="text-slate-500">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+<div class="space-y-4">
+<!-- Voice Note Item -->
+<div class="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-start mb-3">
+<div>
+<p class="font-bold text-slate-900 dark:text-white">Product Sync Meeting</p>
+<p class="text-xs text-slate-500">Today, 10:45 AM • 12:04</p>
+</div>
+<button class="text-slate-400">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mb-4">
+<span class="w-1.5 h-1.5 rounded-full bg-primary dark:bg-white"></span>
+<div class="flex-1 h-8 flex items-center gap-0.5 px-2 overflow-hidden opacity-30">
+<div class="w-1 bg-slate-900 dark:bg-white h-3 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-5 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-2 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-6 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-4 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-7 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-3 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-5 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-2 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-4 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-6 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-4 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-7 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-3 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-5 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-2 rounded-full"></div>
+<div class="w-1 bg-slate-900 dark:bg-white h-4 rounded-full"></div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 flex items-center justify-center gap-2 bg-primary dark:bg-white dark:text-black text-white py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm">play_arrow</span> Play
+                        </button>
+<button class="flex-1 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-800 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-sm">description</span> Transcribe
+                        </button>
+</div>
+</div>
+<!-- Voice Note Item -->
+<div class="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm opacity-70">
+<div class="flex justify-between items-start mb-3">
+<div>
+<p class="font-bold text-slate-900 dark:text-white">Grocery List Ideas</p>
+<p class="text-xs text-slate-500">Yesterday, 6:30 PM • 02:15</p>
+</div>
+<button class="text-slate-400">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 py-2 rounded-lg text-sm font-semibold">
+<span class="material-symbols-outlined text-sm">play_arrow</span> Play
+                        </button>
+<button class="flex-1 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-800 py-2 rounded-lg text-sm font-semibold">
+<span class="material-symbols-outlined text-sm text-emerald-500">check_circle</span> View Text
+                        </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button -->
+<div class="fixed bottom-24 right-6 z-50">
+<button class="w-16 h-16 rounded-full bg-primary dark:bg-white dark:text-black text-white flex items-center justify-center shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-3xl">mic</span>
+</button>
+</div>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-6 py-4 z-40">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<a class="flex flex-col items-center gap-1 text-primary dark:text-white" href="#">
+<span class="material-symbols-outlined font-variation-fill">grid_view</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Dash</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary dark:hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">folder</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Library</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary dark:hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Search</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary dark:hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Setup</span>
+</a>
+</div>
+</nav>
+</body></html>
