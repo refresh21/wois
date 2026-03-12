@@ -4,19 +4,21 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from './AuthContext'
 import { useSidebar } from './SidebarContext'
+import { useLanguage } from './LanguageContext'
 
 export default function Sidebar() {
     const pathname = usePathname()
     const { user, userName, userAvatar, signInWithGoogle, signOut, loading } = useAuth()
     const { isOpen, isMobile, closeSidebar } = useSidebar()
+    const { t } = useLanguage()
 
     const navItems = [
-        { href: '/', label: 'Dashboard', icon: 'space_dashboard' },
-        { href: '/record', label: 'Voice Notes', icon: 'mic' },
-        { href: '/upload', label: 'Upload', icon: 'upload_file' },
-        { href: '/summarize', label: 'Summarize', icon: 'auto_awesome' },
-        { href: '/memory', label: 'Memory', icon: 'inventory_2' },
-        { href: '/drive', label: 'Google Drive', icon: 'cloud' },
+        { href: '/', label: t('nav.dashboard'), icon: 'space_dashboard' },
+        { href: '/record', label: t('nav.voice_notes'), icon: 'mic' },
+        { href: '/upload', label: t('nav.upload'), icon: 'upload_file' },
+        { href: '/summarize', label: t('nav.summarize'), icon: 'auto_awesome' },
+        { href: '/memory', label: t('nav.memory'), icon: 'inventory_2' },
+        { href: '/drive', label: t('nav.google_drive'), icon: 'cloud' },
     ]
 
     return (
@@ -53,7 +55,7 @@ export default function Sidebar() {
                                     <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>...</span>
                                 </div>
                                 <div className="profile-info">
-                                    <p className="profile-name">Yükleniyor...</p>
+                                    <p className="profile-name">{t('common.loading')}</p>
                                 </div>
                             </div>
                         ) : user ? (
@@ -75,7 +77,7 @@ export default function Sidebar() {
                                 </div>
                                 <button
                                     onClick={signOut}
-                                    title="Çıkış yap"
+                                    title={t('auth.logout')}
                                     style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '1.75rem', height: '1.75rem', borderRadius: 'var(--radius-default)', color: 'var(--text-light)' }}
                                 >
                                     <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>logout</span>
@@ -92,7 +94,7 @@ export default function Sidebar() {
                                 }}
                             >
                                 <span className="material-symbols-outlined" style={{ fontSize: '1.125rem' }}>login</span>
-                                Google ile Giriş Yap
+                                {t('auth.login_google')}
                             </button>
                         )}
                     </>

@@ -5,13 +5,22 @@ import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastContext'
 import { sanitizeFilename } from '@/lib/utils'
+import { useAuth } from '@/components/AuthContext'
+import { useLanguage } from '@/components/LanguageContext'
+import LoginModal from '@/components/LoginModal'
+
+import { supabase } from '@/lib/supabase'
 
 export default function RecordPage() {
     const router = useRouter()
+    const [savedNote, setSavedNote] = useState<{ id: string, title: string, transcript: string, audio_url: string | null, duration: string } | null>(null)
+    const [showLoginModal, setShowLoginModal] = useState(false)
+    const { user } = useAuth()
+    const { t } = useLanguage()
     const { showToast } = useToast()
+
     const [isRecording, setIsRecording] = useState(false)
     const [isPaused, setIsPaused] = useState(false)
     const [seconds, setSeconds] = useState(0)
@@ -20,7 +29,6 @@ export default function RecordPage() {
     const [transcribing, setTranscribing] = useState(false)
     const [noteTitle, setNoteTitle] = useState('')
     const [uploadMode, setUploadMode] = useState(false)
-    const [savedNote, setSavedNote] = useState<{ id: string, title: string, transcript: string, audio_url: string | null, duration: string } | null>(null)
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const audioChunksRef = useRef<Blob[]>([])
@@ -32,6 +40,10 @@ export default function RecordPage() {
     const secs = String(seconds % 60).padStart(2, '0')
 
     const startRecording = async () => {
+        if (!user) {
+            setShowLoginModal(true)
+            return
+        }
         try {
             // Default constraints let the browser apply AGC + noise suppression — amplifies quiet input
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -130,10 +142,11 @@ export default function RecordPage() {
                 : null
 
             const durationStr = `${hours}:${minutes}:${secs}`
-            const title = noteTitle.trim() || `Ses Notu - ${new Date().toLocaleDateString('tr-TR')}`
+            const title = noteTitle.trim() || `${t('nav.voice_notes')} - ${new Date().toLocaleDateString('tr-TR')}`
 
             const { data: noteData, error: noteError } = await supabase.from('notes').insert({
                 title, transcript: transcriptText, duration: durationStr, type: 'voice', audio_url: audioUrl,
+                user_id: user?.id
             }).select().single()
 
             if (noteError) {
@@ -277,45 +290,43 @@ export default function RecordPage() {
                         </div>
                         <button
                             onClick={() => setUploadMode(!uploadMode)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: 'var(--radius-lg)', background: 'var(--bg-hover)', fontSize: '0.875rem', fontWeight: 600, border: '1px solid var(--border-color)' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: 'var(--radius-lg)', background: 'var(--bg-hover)', fontSize: '0.875rem', fontWeight: 600, border: '1px solid var(--border-color)', cursor: 'pointer' }}
                         >
                             <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>{uploadMode ? 'mic' : 'upload_file'}</span>
-                            {uploadMode ? 'Record Mode' : 'Upload Mode'}
+                            {uploadMode ? t('record.recording_mode') : t('record.upload_mode')}
                         </button>
                     </div>
 
-                    {/* Title Input */}
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
                         <input
                             type="text"
                             value={noteTitle}
                             onChange={(e) => setNoteTitle(e.target.value)}
-                            placeholder="Note title (optional)..."
-                            style={{ width: '100%', fontSize: '1rem', fontWeight: 600, padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', background: 'var(--bg-surface)', outline: 'none', color: 'var(--text-main)', fontFamily: 'var(--font-display)' }}
+                            placeholder={t('record.title_placeholder')}
+                            style={{ width: '100%', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', marginBottom: '1.5rem', fontSize: '1.125rem', fontWeight: 600, background: 'var(--bg-surface)' }}
                         />
-                    </div>
 
-                    {uploadMode ? (
-                        /* UPLOAD MODE */
-                        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                            <div
-                                style={{ border: '2px dashed var(--border-color)', borderRadius: 'var(--radius-xl)', padding: '4rem 2rem', cursor: 'pointer', textAlign: 'center', background: 'var(--bg-surface)', transition: 'all 0.2s' }}
-                                onClick={() => document.getElementById('audio-upload')?.click()}
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: '3.5rem', color: 'var(--text-light)', display: 'block', marginBottom: '1rem' }}>cloud_upload</span>
-                                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>Ses Dosyası Yükle</h3>
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Sürükleyip bırak veya tıkla</p>
-                                <p style={{ color: 'var(--text-light)', fontSize: '0.75rem', marginTop: '0.5rem' }}>MP3, WAV, M4A, WebM, OGG, FLAC</p>
-                            </div>
-                            <input id="audio-upload" type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleUploadAudio} />
-                            {(transcribing || saving) && (
-                                <div style={{ marginTop: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                    <span className="material-symbols-outlined animate-pulse">hourglass_empty</span>
-                                    <p style={{ marginTop: '0.5rem' }}>{transcribing ? 'Transkripsiyon yapılıyor...' : 'Kaydediliyor...'}</p>
+                        {uploadMode ? (
+                            /* UPLOAD MODE */
+                            <div>
+                                <div
+                                    style={{ border: '2px dashed var(--border-color)', borderRadius: 'var(--radius-xl)', padding: '4rem 2rem', cursor: 'pointer', textAlign: 'center', background: 'var(--bg-surface)', transition: 'all 0.2s' }}
+                                    onClick={() => document.getElementById('audio-upload')?.click()}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '3.5rem', color: 'var(--text-light)', display: 'block', marginBottom: '1rem' }}>cloud_upload</span>
+                                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>{t('nav.upload')}</h3>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Sürükleyip bırak veya tıkla</p>
+                                    <p style={{ color: 'var(--text-light)', fontSize: '0.75rem', marginTop: '0.5rem' }}>MP3, WAV, M4A, WebM, OGG, FLAC</p>
                                 </div>
-                            )}
-                        </div>
-                    ) : (
+                                <input id="audio-upload" type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleUploadAudio} />
+                                {(transcribing || saving) && (
+                                    <div style={{ marginTop: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <span className="material-symbols-outlined animate-pulse">hourglass_empty</span>
+                                        <p style={{ marginTop: '0.5rem' }}>{transcribing ? t('common.loading') : t('common.save')}</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
                         /* RECORD MODE */
                         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
                             {/* Timer */}
@@ -392,7 +403,7 @@ export default function RecordPage() {
                                     }}
                                 >
                                     <span className="material-symbols-outlined">{isRecording ? 'stop_circle' : 'mic'}</span>
-                                    {saving ? 'Kaydediliyor...' : transcribing ? 'Transkripsiyon...' : isRecording ? 'Bitir & Transkript Et' : 'Kayda Başla'}
+                                    {saving ? t('common.save') : transcribing ? t('common.loading') : isRecording ? t('record.finish_transcribe') : t('record.start_recording')}
                                 </button>
                             </div>
 
@@ -401,7 +412,7 @@ export default function RecordPage() {
                                 <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
                                     <span className="material-symbols-outlined animate-pulse">hourglass_empty</span>
                                     <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                                        {transcribing ? 'Groq Whisper ile transkripsiyon yapılıyor...' : 'Supabase\'e kaydediliyor...'}
+                                        {transcribing ? t('record.transcribing_with_whisper') : t('record.saving_to_supabase')}
                                     </p>
                                 </div>
                             )}
@@ -418,7 +429,7 @@ export default function RecordPage() {
                                             <div>
                                                 <h4 style={{ fontWeight: 700, fontSize: '1rem' }}>{savedNote.title}</h4>
                                                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                    {savedNote.duration && `${savedNote.duration} • `}Kayıt başarılı
+                                                    {savedNote.duration && `${savedNote.duration} • `}{t('common.success')}
                                                 </p>
                                             </div>
                                         </div>
@@ -427,7 +438,7 @@ export default function RecordPage() {
                                             style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem', borderRadius: 'var(--radius-lg)', background: 'var(--primary)', color: 'var(--primary-invert)', fontSize: '0.8125rem', fontWeight: 600, textDecoration: 'none' }}
                                         >
                                             <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>open_in_new</span>
-                                            Nota Git
+                                            {t('record.go_to_note')}
                                         </Link>
                                     </div>
 
@@ -440,11 +451,11 @@ export default function RecordPage() {
 
                                     {/* Transcript */}
                                     <div style={{ padding: '1.25rem 1.5rem' }}>
-                                        <h5 style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>Transkript</h5>
+                                        <h5 style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>{t('note.transcript')}</h5>
                                         {savedNote.transcript ? (
                                             <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--text-main)' }}>{savedNote.transcript}</p>
                                         ) : (
-                                            <p style={{ fontSize: '0.875rem', color: 'var(--text-light)', fontStyle: 'italic' }}>Transkript bulunamadı</p>
+                                            <p style={{ fontSize: '0.875rem', color: 'var(--text-light)', fontStyle: 'italic' }}>{t('note.no_transcript')}</p>
                                         )}
                                     </div>
 
@@ -455,13 +466,14 @@ export default function RecordPage() {
                                             style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-lg)', background: 'var(--bg-hover)', border: '1px solid var(--border-color)', fontWeight: 600, fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer' }}
                                         >
                                             <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>mic</span>
-                                            Yeni Kayıt Al
+                                            {t('record.new_recording')}
                                         </button>
                                     </div>
                                 </div>
                             )}
                         </div>
                     )}
+                    </div>
 
                     {/* Footer Info */}
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '2rem', padding: '1rem', borderTop: '1px solid var(--border-color)' }}>
@@ -480,6 +492,7 @@ export default function RecordPage() {
                     </div>
                 </div>
             </main>
+            <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
         </>
     )
 }

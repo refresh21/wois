@@ -3,6 +3,7 @@ import './globals.css'
 import { AuthProvider } from '@/components/AuthContext'
 import { ToastProvider } from '@/components/ToastContext'
 import { SidebarProvider } from '@/components/SidebarContext'
+import { LanguageProvider } from '@/components/LanguageContext'
 
 export const metadata: Metadata = {
   title: 'Wois - Voice Dashboard',
@@ -20,15 +21,17 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
       </head>
       <body>
-        <SidebarProvider>
-          <ToastProvider>
-            <AuthProvider>
-              <div className="app-layout">
-                {children}
-              </div>
-            </AuthProvider>
-          </ToastProvider>
-        </SidebarProvider>
+        <LanguageProvider>
+          <SidebarProvider>
+            <ToastProvider>
+              <AuthProvider>
+                <div className="app-layout">
+                  {children}
+                </div>
+              </AuthProvider>
+            </ToastProvider>
+          </SidebarProvider>
+        </LanguageProvider>
       </body>
     </html>
   )

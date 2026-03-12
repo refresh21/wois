@@ -9,6 +9,9 @@ import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import { useToast } from '@/components/ToastContext'
 import { getPdfFontsVfs } from '@/lib/fonts/pdfUtils'
+import { useAuth } from '@/components/AuthContext'
+import { useLanguage } from '@/components/LanguageContext'
+import LoginModal from '@/components/LoginModal'
 
 interface Note {
     id: string
@@ -20,6 +23,7 @@ interface Note {
     type: string
     audio_url: string | null
     media_urls: string[] | null
+    user_id: string
     created_at: string
     updated_at: string
 }
@@ -28,6 +32,9 @@ export default function NoteDetailPage() {
     const params = useParams()
     const router = useRouter()
     const { showToast } = useToast()
+    const { user, loading: authLoading } = useAuth()
+    const { t, locale } = useLanguage()
+    const [showLoginModal, setShowLoginModal] = useState(false)
     const [note, setNote] = useState<Note | null>(null)
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('summary')
@@ -46,12 +53,34 @@ export default function NoteDetailPage() {
     const audioRef = useRef<HTMLAudioElement>(null)
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-    useEffect(() => { fetchNote() }, [params.id])
-
+    useEffect(() => { 
+        if (!authLoading) {
+            if (!user) {
+                setShowLoginModal(true)
+                setLoading(false)
+            } else {
+                fetchNote() 
+            }
+        }
+    }, [params.id, user, authLoading])
+ 
     const fetchNote = async () => {
         setLoading(true)
         const { data, error } = await supabase.from('notes').select('*').eq('id', params.id).single()
-        if (error) { console.error('Error:', error); showToast('Not bulunamadı', 'error'); router.push('/'); return }
+        if (error || !data) { 
+            console.error('Error:', error); 
+            showToast(t('common.error'), 'error'); 
+            router.push('/'); 
+            return 
+        }
+        
+        // Security check
+        if (data.user_id !== user?.id) {
+            showToast(t('common.error'), 'error');
+            router.push('/');
+            return
+        }
+
         setNote(data); setPersonalNotes(data.personal_notes || ''); setTitleInput(data.title); setLoading(false)
     }
 
@@ -69,9 +98,9 @@ export default function NoteDetailPage() {
 
             const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
             const data = await res.json()
-            if (data.summary) { await supabase.from('notes').update({ summary: data.summary }).eq('id', note.id); setNote(prev => prev ? { ...prev, summary: data.summary } : null); showToast('Not başarıyla özetlendi', 'success'); }
-            else showToast('Özetleme başarısız: ' + (data.details || data.error || 'Bilinmeyen hata'), 'error')
-        } catch (err: any) { showToast('Özetleme hatası: ' + err.message, 'error') }
+            if (data.summary) { await supabase.from('notes').update({ summary: data.summary }).eq('id', note.id); setNote(prev => prev ? { ...prev, summary: data.summary } : null); showToast(t('common.success'), 'success'); }
+            else showToast(t('common.error') + ': ' + (data.details || data.error || 'Bilinmeyen hata'), 'error')
+        } catch (err: any) { showToast(t('common.error') + ': ' + err.message, 'error') }
         finally { setSummarizing(false) }
     }
 
@@ -107,7 +136,7 @@ export default function NoteDetailPage() {
             content.push({ text: note.transcript, style: 'body' })
         }
         if (note.personal_notes) {
-            content.push({ text: 'Personal Notes', style: 'subheader' })
+            content.push({ text: t('note.notes_placeholder').replace('...', ''), style: 'subheader' })
             content.push({ text: note.personal_notes, style: 'body' })
         }
 
@@ -148,11 +177,57 @@ export default function NoteDetailPage() {
         pdfMake.createPdf(docDef as any).download(`${note.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`)
     }
 
+    const t_drive = (key: string, resource?: string) => {
+        const dict: any = {
+            tr: {
+                'connect_required': 'Önce Google Drive\'a bağlanmanız gerekiyor.',
+                'success': `${resource} Google Drive'a başarıyla kaydedildi!`,
+                'error': `Drive'a kaydetme hatası`,
+                'saving': 'Kaydediliyor...',
+                'save_pdf': 'PDF\'i Drive\'a Kaydet',
+                'save_media': 'Medyayı Drive\'a Kaydet',
+                'regenerating': 'Yeniden oluşturuluyor...',
+                'regenerate': 'Yeniden Oluştur',
+                'now_playing': 'Şu An Çalıyor',
+                'no_summary': 'Henüz özet yok',
+                'generate_summary': 'Özet Oluştur',
+                'loading': 'Yükleniyor...',
+                'delete_confirm': 'Bu notu silmek istediğinize emin misiniz?',
+                'transcript': 'Transkript',
+                'summary': 'Özet',
+                'media': 'Medya',
+                'export_pdf': 'PDF Dışa Aktar',
+                'export_media': 'Medyayı İndir',
+            },
+            en: {
+                'connect_required': 'You need to connect to Google Drive first.',
+                'success': `${resource} saved to Google Drive successfully!`,
+                'error': `Drive save error`,
+                'saving': 'Saving...',
+                'save_pdf': 'Save PDF to Drive',
+                'save_media': 'Save Media to Drive',
+                'regenerating': 'Regenerating...',
+                'regenerate': 'Regenerate',
+                'now_playing': 'Now Playing',
+                'no_summary': 'No summary yet',
+                'generate_summary': 'Generate Summary',
+                'loading': 'Loading...',
+                'delete_confirm': 'Are you sure you want to delete this note?',
+                'transcript': 'Transcript',
+                'summary': 'Summary',
+                'media': 'Media',
+                'export_pdf': 'Export PDF',
+                'export_media': 'Download Media',
+            }
+        }
+        return dict[locale][key] || key
+    }
+
     const checkGoogleToken = () => {
         const token = localStorage.getItem('google_access_token')
         const expiry = localStorage.getItem('google_token_expiry')
         if (!token || !expiry || Date.now() >= parseInt(expiry)) {
-            showToast('Önce Google Drive\'a bağlanmanız gerekiyor.', 'error');
+            showToast(t_drive('connect_required'), 'error');
             router.push('/drive');
             return null;
         }
@@ -174,9 +249,9 @@ export default function NoteDetailPage() {
             const data = await res.json()
 
             if (data.success) {
-                showToast(`${resourceType} Google Drive'a başarıyla kaydedildi!`, 'success')
+                showToast(t_drive('success', resourceType), 'success')
             } else {
-                showToast(`Drive'a kaydetme hatası: ${data.error || 'Bilinmeyen hata'}`, 'error')
+                showToast(`${t_drive('error')}: ${data.error || 'Bilinmeyen hata'}`, 'error')
                 console.error('Drive upload API error:', data)
             }
         } catch (err: any) {
@@ -301,17 +376,23 @@ export default function NoteDetailPage() {
     const saveSummaryToDrive = async () => {
         if (!note || !note.summary) return;
         const blob = new Blob([note.summary], { type: 'text/plain;charset=utf-8' })
-        await uploadToDrive(blob, `${note.title.replace(/[^a-zA-Z0-9]/g, '_')}_Summary.txt`, setSavingSummary, 'Özet')
+        await uploadToDrive(blob, `${note.title.replace(/[^a-zA-Z0-9]/g, '_')}_Summary.txt`, setSavingSummary, t_drive('summary'))
     }
 
-    const deleteNote = async () => { if (!note) return; await supabase.from('notes').delete().eq('id', note.id); router.push('/') }
+    const deleteNote = async () => { 
+        if (!note) return; 
+        if (confirm(t_drive('delete_confirm'))) {
+            await supabase.from('notes').delete().eq('id', note.id); 
+            router.push('/') 
+        }
+    }
     const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`
     const togglePlay = () => { if (!audioRef.current) return; isPlaying ? audioRef.current.pause() : audioRef.current.play(); setIsPlaying(!isPlaying) }
     const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => { if (!audioRef.current || !audioDuration) return; const rect = e.currentTarget.getBoundingClientRect(); audioRef.current.currentTime = ((e.clientX - rect.left) / rect.width) * audioDuration }
 
     const tabs = [
-        { key: 'summary', label: 'AI Summary' }, { key: 'notes', label: 'Personal Notes' }, { key: 'transcript', label: 'Transcript' },
-        ...(note?.media_urls && note.media_urls.length > 0 ? [{ key: 'media', label: 'Media' }] : []),
+        { key: 'summary', label: t('nav.summarize') }, { key: 'notes', label: t('nav.memory') }, { key: 'transcript', label: t('note.transcript') },
+        ...(note?.media_urls && note.media_urls.length > 0 ? [{ key: 'media', label: t('nav.media') }] : []),
     ]
 
     if (loading) {
@@ -322,10 +403,11 @@ export default function NoteDetailPage() {
                     <Header />
                     <div className="page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
                         <div className="animate-pulse" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
-                            <span className="material-symbols-outlined">hourglass_empty</span> Loading...
+                            <span className="material-symbols-outlined">hourglass_empty</span> {t('common.loading')}
                         </div>
                     </div>
                 </main>
+                <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
             </>
         )
     }
@@ -379,7 +461,7 @@ export default function NoteDetailPage() {
                         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>calendar_today</span>
-                                {new Date(note.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {new Date(note.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </span>
                             {note.duration && <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>• {note.duration}</span>}
                             <span style={{ fontSize: '0.625rem', background: 'var(--bg-hover)', color: 'var(--text-muted)', padding: '0.125rem 0.5rem', borderRadius: 'var(--radius-default)', fontWeight: 700, textTransform: 'uppercase' }}>{note.type}</span>
@@ -403,11 +485,11 @@ export default function NoteDetailPage() {
                             {(note.transcript || note.summary || note.personal_notes || note.type !== 'media') && (
                                 <>
                                     <button onClick={exportPDF} className="btn-primary" style={{ gap: '0.5rem', background: note.type === 'media' ? 'var(--bg-surface)' : 'var(--primary)', color: note.type === 'media' ? 'var(--text-main)' : 'white', border: note.type === 'media' ? '1px solid var(--border-color)' : 'none' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>picture_as_pdf</span> {note.type === 'media' ? 'Export Summary PDF' : 'Export PDF'}
+                                        <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>picture_as_pdf</span> {t_drive('export_pdf')}
                                     </button>
                                     <button onClick={savePdfToDrive} disabled={savingPdf} className="btn-primary" style={{ gap: '0.5rem', background: savingPdf ? 'var(--slate-400)' : (note.type === 'media' ? 'var(--bg-surface)' : 'var(--primary)'), border: note.type === 'media' && !savingPdf ? '1px solid var(--border-color)' : 'none', color: savingPdf ? 'white' : (note.type === 'media' ? 'var(--text-main)' : 'white') }}>
                                         <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>{savingPdf ? 'hourglass_empty' : 'cloud_upload'}</span>
-                                        {savingPdf ? 'Saving...' : (note.type === 'media' ? 'Save Summary PDF to Drive' : 'Save PDF to Drive')}
+                                        {savingPdf ? t_drive('saving') : t_drive('save_pdf')}
                                     </button>
                                 </>
                             )}
@@ -549,6 +631,7 @@ export default function NoteDetailPage() {
                     </div>
                 )}
             </main>
+            <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
         </>
     )
 }

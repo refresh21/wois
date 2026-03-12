@@ -1,18 +1,23 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { sanitizeFilename } from '@/lib/utils'
+import { Suspense, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
-import { sanitizeFilename } from '@/lib/utils'
-import { Suspense } from 'react'
 import { useToast } from '@/components/ToastContext'
+import { useAuth } from '@/components/AuthContext'
+import { useLanguage } from '@/components/LanguageContext'
+import LoginModal from '@/components/LoginModal'
 
 function UploadContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { showToast } = useToast()
+    const { user } = useAuth()
+    const { t, locale } = useLanguage()
+    const [showLoginModal, setShowLoginModal] = useState(false)
     const isMediaMode = searchParams.get('type') === 'media'
 
     const [files, setFiles] = useState<File[]>([])
@@ -43,7 +48,11 @@ function UploadContent() {
     }
 
     const handleUpload = async () => {
-        if (files.length === 0) { showToast('Lütfen en az bir dosya seçin', 'error'); return }
+        if (!user) {
+            setShowLoginModal(true)
+            return
+        }
+        if (files.length === 0) { showToast(t('upload.select_files_error'), 'error'); return }
         setUploading(true)
         setProgress(0)
         try {
@@ -75,10 +84,11 @@ function UploadContent() {
                 setProgress(Math.round(((i + 1) / files.length) * 100))
             }
 
-            const title = noteTitle.trim() || (isMediaMode ? `Medya - ${new Date().toLocaleDateString('tr-TR')}` : `Yükleme - ${new Date().toLocaleDateString('tr-TR')}`)
+            const title = noteTitle.trim() || (isMediaMode ? `${t('nav.media')} - ${new Date().toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}` : `${t('nav.upload')} - ${new Date().toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}`)
             const { data: noteData, error: noteError } = await supabase.from('notes').insert({
                 title, transcript: transcript || noteText || null, type: isMediaMode ? 'media' : 'upload',
                 audio_url: audioUrl, media_urls: mediaUrls.length > 0 ? mediaUrls : null, personal_notes: noteText || null,
+                user_id: user.id
             }).select().single()
 
             if (noteError) showToast('Kaydetme hatası: ' + noteError.message, 'error')
@@ -102,13 +112,13 @@ function UploadContent() {
                             <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>{isMediaMode ? 'photo_library' : 'upload_file'}</span>
                         </div>
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.025em' }}>
-                            {isMediaMode ? 'Upload Media' : 'Upload Files'}
+                            {isMediaMode ? t('upload.media_title') : t('upload.files_title')}
                         </h2>
                     </div>
 
                     <div style={{ maxWidth: '600px' }}>
                         <div style={{ marginBottom: '1.25rem' }}>
-                            <input type="text" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} placeholder="Not başlığı (opsiyonel)..."
+                            <input type="text" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} placeholder={t('record.title_placeholder')}
                                 style={{ width: '100%', fontSize: '1rem', fontWeight: 600, padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', background: 'var(--bg-surface)', outline: 'none', color: 'var(--text-main)' }} />
                         </div>
 
@@ -121,9 +131,9 @@ function UploadContent() {
                         >
                             <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: 'var(--text-light)', display: 'block', marginBottom: '0.5rem' }}>cloud_upload</span>
                             <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-                                {isMediaMode ? 'Fotoğraf & Video Sürükle' : 'Dosya Sürükle'}
+                                {isMediaMode ? t('upload.drag_media') : t('upload.drag_files')}
                             </h3>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>veya tıkla</p>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{t('upload.or_click')}</p>
                         </div>
                         <input ref={fileInputRef} type="file" accept={isMediaMode ? 'image/*,video/*' : 'audio/*,image/*,video/*'} multiple style={{ display: 'none' }} onChange={(e) => handleFileSelect(e.target.files)} />
 
@@ -148,12 +158,12 @@ function UploadContent() {
                             </div>
                         )}
 
-                        <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Not ekle (opsiyonel)..."
+                        <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder={t('note.notes_placeholder')}
                             style={{ width: '100%', minHeight: '100px', padding: '0.875rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', background: 'var(--bg-surface)', fontSize: '0.9375rem', lineHeight: 1.6, resize: 'vertical', outline: 'none', color: 'var(--text-main)', marginBottom: '1.25rem' }} />
 
                         <button onClick={handleUpload} disabled={uploading || files.length === 0}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', borderRadius: 'var(--radius-xl)', height: '3.25rem', background: uploading || files.length === 0 ? 'var(--slate-300)' : 'var(--primary)', color: 'var(--primary-invert)', fontWeight: 700, fontSize: '1rem' }}>
-                            {uploading ? (<><span className="material-symbols-outlined animate-pulse">hourglass_empty</span>{transcribing ? 'Transkripsiyon...' : `Yükleniyor... ${progress}%`}</>) : (<><span className="material-symbols-outlined">cloud_upload</span>Yükle & Kaydet</>)}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', borderRadius: 'var(--radius-xl)', height: '3.25rem', background: uploading || files.length === 0 ? 'var(--slate-300)' : 'var(--primary)', color: 'var(--primary-invert)', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>
+                            {uploading ? (<><span className="material-symbols-outlined animate-pulse">hourglass_empty</span>{transcribing ? t('common.loading') : `${t('upload.uploading')} ${progress}%`}</>) : (<><span className="material-symbols-outlined">cloud_upload</span>{t('upload.button')}</>)}
                         </button>
                         {uploading && (
                             <div style={{ marginTop: '0.75rem' }}><div className="progress-bar-track"><div className="progress-bar-fill" style={{ width: `${progress}%` }}></div></div></div>
@@ -161,6 +171,7 @@ function UploadContent() {
                     </div>
                 </div>
             </main>
+            <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
         </>
     )
 }

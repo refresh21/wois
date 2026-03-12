@@ -4,6 +4,7 @@
 -- 1. Notes table
 CREATE TABLE IF NOT EXISTS notes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL DEFAULT 'Untitled Note',
   transcript TEXT,
   summary TEXT,
@@ -16,16 +17,27 @@ CREATE TABLE IF NOT EXISTS notes (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2. Enable RLS and allow all operations (no auth for now)
+-- Index for performance
+CREATE INDEX IF NOT EXISTS notes_user_id_idx ON notes(user_id);
+
+-- 2. Enable RLS and restrict access to owner
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policy if re-running
+-- Drop existing generic policy
 DROP POLICY IF EXISTS "Allow all operations" ON notes;
 
-CREATE POLICY "Allow all operations" ON notes
-  FOR ALL
-  USING (true)
-  WITH CHECK (true);
+-- Create owner-only policies
+CREATE POLICY "Users can view their own notes" ON notes
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own notes" ON notes
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own notes" ON notes
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own notes" ON notes
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- 3. Storage: Create buckets and policies
 -- After running this SQL, go to Supabase Dashboard → Storage:
