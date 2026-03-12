@@ -8,6 +8,7 @@ import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import { useToast } from '@/components/ToastContext'
+import { getPdfFontsVfs } from '@/lib/fonts/pdfUtils'
 
 interface Note {
     id: string
@@ -127,17 +128,10 @@ export default function NoteDetailPage() {
         if (!docDef || !note) return
 
         const pdfMake = require('pdfmake/build/pdfmake')
-        const { fontVfs } = require('@/lib/fonts/vfs_fonts')
+        const decodedVfs = getPdfFontsVfs()
 
-        // Convert base64 to Buffer/Uint8Array to prevent pdfmake from misinterpreting it as a path
-        const decodedVfs: Record<string, any> = {}
-        for (const [key, value] of Object.entries(fontVfs)) {
-            decodedVfs[key] = Buffer.from(value as string, 'base64')
-        }
-
-        if (!pdfMake.vfs) pdfMake.vfs = {}
-        Object.assign(pdfMake.vfs, decodedVfs)
-
+        pdfMake.vfs = decodedVfs;
+        
         if (pdfMake.virtualfs && pdfMake.virtualfs.storage) {
             Object.assign(pdfMake.virtualfs.storage, decodedVfs)
         }
@@ -204,20 +198,14 @@ export default function NoteDetailPage() {
         try {
             const pdfBlob = await new Promise<Blob>((resolve, reject) => {
                 const timeout = setTimeout(() => {
-                    reject(new Error('PDF generation timed out (15s)'))
-                }, 15000)
+                    reject(new Error('PDF generation timed out (30s)'))
+                }, 30000)
 
                 try {
                     const pdfMake = require('pdfmake/build/pdfmake')
-                    const { fontVfs } = require('@/lib/fonts/vfs_fonts')
+                    const decodedVfs = getPdfFontsVfs()
 
-                    const decodedVfs: Record<string, any> = {}
-                    for (const [key, value] of Object.entries(fontVfs)) {
-                        decodedVfs[key] = Buffer.from(value as string, 'base64')
-                    }
-
-                    if (!pdfMake.vfs) pdfMake.vfs = {}
-                    Object.assign(pdfMake.vfs, decodedVfs)
+                    pdfMake.vfs = decodedVfs;
                     if (pdfMake.virtualfs && pdfMake.virtualfs.storage) {
                         Object.assign(pdfMake.virtualfs.storage, decodedVfs)
                     }
