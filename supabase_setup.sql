@@ -64,3 +64,23 @@ CREATE POLICY "Allow public read media" ON storage.objects FOR SELECT USING (buc
 CREATE POLICY "Allow public insert media" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media');
 CREATE POLICY "Allow public update media" ON storage.objects FOR UPDATE USING (bucket_id = 'media');
 CREATE POLICY "Allow public delete media" ON storage.objects FOR DELETE USING (bucket_id = 'media');
+-- 4. User Settings: Store Google Drive tokens
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  google_refresh_token TEXT,
+  google_drive_connected BOOLEAN DEFAULT false,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+
+-- Policies for user_settings
+CREATE POLICY "Users can view their own settings" ON user_settings
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own settings" ON user_settings
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own settings" ON user_settings
+  FOR UPDATE USING (auth.uid() = user_id);

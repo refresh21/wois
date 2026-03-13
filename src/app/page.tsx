@@ -39,13 +39,36 @@ export default function Dashboard() {
     }
   }, [user, authLoading])
 
-  const checkDriveStatus = () => {
+  const checkDriveStatus = async () => {
+    // 1. Check local storage first for speed
     const token = localStorage.getItem('google_access_token')
     const expiry = localStorage.getItem('google_token_expiry')
+    
     if (token && expiry && Date.now() < parseInt(expiry)) {
       setDriveConnected(true)
-    } else {
-      setDriveConnected(false)
+      return
+    }
+
+    // 2. If not in local storage, check database
+    if (user) {
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('google_drive_connected, google_refresh_token')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!error && data?.google_drive_connected) {
+        setDriveConnected(true)
+        
+        // If we have a refresh token but no local access token, 
+        // the Drive page's refresh logic will handle the next steps 
+        // when the user visits it. For now, we just show "Connected".
+        if (data.google_refresh_token && !localStorage.getItem('google_refresh_token')) {
+          localStorage.setItem('google_refresh_token', data.google_refresh_token)
+        }
+      } else {
+        setDriveConnected(false)
+      }
     }
   }
 
@@ -74,6 +97,8 @@ export default function Dashboard() {
         audioCount: all.filter(n => n.audio_url).length,
         mediaCount: all.filter(n => n.media_urls && n.media_urls.length > 0).length,
       })
+      // Sync drive status after notes fetch to ensure we have user context
+      checkDriveStatus()
     }
     setLoading(false)
   }

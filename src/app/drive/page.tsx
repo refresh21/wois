@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import { useAuth } from '@/components/AuthContext'
+import { supabase } from '@/lib/supabase'
 
 interface DriveFile {
     id: string
@@ -21,12 +23,30 @@ export default function DrivePage() {
     const [files, setFiles] = useState<DriveFile[]>([])
     const [folderId, setFolderId] = useState<string | null>(null)
 
-    useEffect(() => { checkConnection() }, [])
+    const { user } = useAuth()
+
+    useEffect(() => { 
+        if (user) checkConnection() 
+    }, [user])
 
     const checkConnection = async () => {
-        const token = localStorage.getItem('google_access_token')
-        const expiry = localStorage.getItem('google_token_expiry')
-        const refreshToken = localStorage.getItem('google_refresh_token')
+        let token = localStorage.getItem('google_access_token')
+        let expiry = localStorage.getItem('google_token_expiry')
+        let refreshToken = localStorage.getItem('google_refresh_token')
+
+        // 1. If no local refresh token, try to get it from Supabase
+        if (!refreshToken && user) {
+            const { data, error } = await supabase
+                .from('user_settings')
+                .select('google_refresh_token')
+                .eq('user_id', user.id)
+                .single()
+            
+            if (!error && data?.google_refresh_token) {
+                refreshToken = data.google_refresh_token
+                if (refreshToken) localStorage.setItem('google_refresh_token', refreshToken)
+            }
+        }
 
         if (token && expiry && Date.now() < parseInt(expiry)) { 
             setConnected(true); 
@@ -35,7 +55,7 @@ export default function DrivePage() {
         }
 
         if (refreshToken) {
-            console.log('Token expired, attempting refresh in Drive page...')
+            console.log('Attempting token refresh in Drive page...')
             try {
                 const res = await fetch('/api/drive/refresh', {
                     method: 'POST',
@@ -119,7 +139,10 @@ export default function DrivePage() {
                                     <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)' }}>Connected</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button onClick={() => fetchFiles(localStorage.getItem('google_access_token')!)}
+                                    <button onClick={() => {
+                                        const token = localStorage.getItem('google_access_token');
+                                        if (token) fetchFiles(token);
+                                    }}
                                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-lg)', background: 'var(--bg-hover)', fontSize: '0.8125rem', fontWeight: 600 }}>
                                         <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>refresh</span> Refresh
                                     </button>

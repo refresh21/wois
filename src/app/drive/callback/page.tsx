@@ -3,10 +3,13 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ToastContext'
+import { useAuth } from '@/components/AuthContext'
+import { supabase } from '@/lib/supabase'
 
 export default function DriveCallbackPage() {
     const router = useRouter()
     const { showToast } = useToast()
+    const { user } = useAuth()
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search)
@@ -27,13 +30,27 @@ export default function DriveCallbackPage() {
                 body: JSON.stringify({ code }),
             })
                 .then(res => res.json())
-                .then(tokens => {
+                .then(async tokens => {
                     if (tokens.access_token) {
                         localStorage.setItem('google_access_token', tokens.access_token)
+                        localStorage.setItem('google_token_expiry', String(Date.now() + tokens.expires_in * 1000))
+                        
                         if (tokens.refresh_token) {
                             localStorage.setItem('google_refresh_token', tokens.refresh_token)
+                            
+                            // Save to Supabase for persistence
+                            if (user) {
+                                await supabase
+                                    .from('user_settings')
+                                    .upsert({
+                                        user_id: user.id,
+                                        google_refresh_token: tokens.refresh_token,
+                                        google_drive_connected: true,
+                                        updated_at: new Date().toISOString()
+                                    })
+                            }
                         }
-                        localStorage.setItem('google_token_expiry', String(Date.now() + tokens.expires_in * 1000))
+                        
                         router.push('/drive')
                     } else {
                         showToast('Token exchange failed', 'error')
