@@ -49,7 +49,7 @@ Cevap dilin HER ZAMAN TÜRKÇE olmalıdır. Lütfen sıradan bir özet yerine an
                 'X-Title': 'Wois AI',
             },
             body: JSON.stringify({
-                model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
+                model: 'openrouter/free',
                 messages: messages,
             }),
         })
@@ -60,7 +60,7 @@ Cevap dilin HER ZAMAN TÜRKÇE olmalıdır. Lütfen sıradan bir özet yerine an
             console.error('OpenRouter Summary error:', errorText)
             return NextResponse.json({ 
                 error: 'Summarization failed', 
-                message: 'Özetleme sırasında bir hata oluştu. Lütfen tekrar deneyin.',
+                message: `Özetleme sırasında bir hata oluştu (Kod: ${response.status}). Lütfen tekrar deneyin.`,
                 details: errorText 
             }, { status: response.status })
         }

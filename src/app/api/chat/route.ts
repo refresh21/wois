@@ -46,7 +46,7 @@ Senin adın Wois'e Sor.`
                 'X-Title': 'Wois AI',
             },
             body: JSON.stringify({
-                model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
+                model: 'openrouter/free',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     ...messages
@@ -82,7 +82,7 @@ Senin adın Wois'e Sor.`
 
             return NextResponse.json({ 
                 error: 'AI Error', 
-                message: 'AI yanıt verirken beklenmedik bir hata oluştu.',
+                message: `AI yanıt verirken bir hata oluştu (Kod: ${response.status}).`,
                 details: errorData 
             }, { status: response.status })
         }
