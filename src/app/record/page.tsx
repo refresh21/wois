@@ -104,13 +104,15 @@ export default function RecordPage() {
         }
     }
 
-    const transcribeAudio = async (audioBlob: Blob) => {
+    const transcribeAudio = async (audioUrl: string) => {
         setTranscribing(true)
         try {
-            console.log('Transcribing blob:', audioBlob.size, 'bytes, type:', audioBlob.type, 'chunks:', audioChunksRef.current.length)
-            const formData = new FormData()
-            formData.append('audio', audioBlob, 'recording.webm')
-            const res = await fetch('/api/transcribe', { method: 'POST', body: formData })
+            console.log('Transcribing via URL:', audioUrl)
+            const res = await fetch('/api/transcribe', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audioUrl }) 
+            })
             const data = await res.json()
             if (data.transcript !== undefined) {
                 setTranscript(data.transcript)
@@ -127,21 +129,9 @@ export default function RecordPage() {
         }
     }
 
-    const saveNote = async (audioBlob: Blob, transcriptText: string) => {
+    const saveNote = async (audioUrl: string, transcriptText: string, durationStr: string, originalBlob?: Blob, fileName?: string) => {
         setSaving(true)
         try {
-            const fileName = `recording_${Date.now()}.webm`
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('recordings')
-                .upload(fileName, audioBlob, { contentType: 'audio/webm' })
-
-            if (uploadError) console.error('Upload error:', uploadError)
-
-            const audioUrl = uploadData
-                ? supabase.storage.from('recordings').getPublicUrl(uploadData.path).data.publicUrl
-                : null
-
-            const durationStr = `${hours}:${minutes}:${secs}`
             const title = noteTitle.trim() || `${t('nav.voice_notes')} - ${new Date().toLocaleDateString('tr-TR')}`
 
             const { data: noteData, error: noteError } = await supabase.from('notes').insert({
@@ -163,16 +153,14 @@ export default function RecordPage() {
 
                 // Auto-sync to Google Drive if connected
                 const googleToken = localStorage.getItem('google_access_token')
-                if (googleToken) {
+                if (googleToken && originalBlob) {
                     try {
                         const formData = new FormData()
-                        // Use a proper File object for Drive upload
-                        const audioFile = new File([audioBlob], fileName, { type: 'audio/webm' })
+                        const audioFile = new File([originalBlob], fileName || 'recording.webm', { type: 'audio/webm' })
                         formData.append('file', audioFile)
                         formData.append('accessToken', googleToken)
-                        formData.append('fileName', title + '.webm') // Add context to filename
+                        formData.append('fileName', title + '.webm')
 
-                        // Don't await the fetch so it uploads in background
                         fetch('/api/drive/upload', {
                             method: 'POST',
                             body: formData
@@ -191,73 +179,82 @@ export default function RecordPage() {
 
     const handleFinishRecording = async () => {
         const audioBlob = await stopRecording()
-        const transcriptText = await transcribeAudio(audioBlob)
-        if (transcriptText !== null) {
-            await saveNote(audioBlob, transcriptText)
-        } else {
-            setSeconds(0)
-            setNoteTitle('')
+        const durationStr = `${hours}:${minutes}:${secs}`
+        setSaving(true)
+        
+        try {
+            // Step 1: Upload to Supabase first
+            const fileName = `recording_${Date.now()}.webm`
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('recordings')
+                .upload(fileName, audioBlob, { contentType: 'audio/webm' })
+
+            if (uploadError) throw uploadError
+
+            const audioUrl = supabase.storage.from('recordings').getPublicUrl(uploadData.path).data.publicUrl
+
+            // Step 2: Transcribe via URL
+            const transcriptText = await transcribeAudio(audioUrl)
+            
+            // Step 3: Save metadata
+            await saveNote(audioUrl, transcriptText || '', durationStr, audioBlob, fileName)
+        } catch (err: any) {
+            showToast('İşlem hatası: ' + err.message, 'error')
+        } finally {
+            setSaving(false)
         }
     }
 
     const handleUploadAudio = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
-        setTranscribing(true)
         setSaving(true)
         try {
-            const transcriptText = await transcribeAudio(file)
-            if (transcriptText === null) return;
-            
             const sanitizedName = sanitizeFilename(file.name)
             const fileName = `upload_${Date.now()}_${sanitizedName}`
-            const { data: uploadData } = await supabase.storage
+            
+            // Step 1: Upload to Supabase first
+            const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('recordings')
                 .upload(fileName, file, { contentType: file.type })
 
-            const audioUrl = uploadData
-                ? supabase.storage.from('recordings').getPublicUrl(uploadData.path).data.publicUrl
-                : null
+            if (uploadError) throw uploadError
 
+            const audioUrl = supabase.storage.from('recordings').getPublicUrl(uploadData.path).data.publicUrl
+
+            // Step 2: Transcribe via URL
+            const transcriptText = await transcribeAudio(audioUrl)
+            
+            // Step 3: Save metadata
             const title = noteTitle.trim() || file.name.replace(/\.[^/.]+$/, '')
             const { data: noteData, error: noteError } = await supabase.from('notes').insert({
-                title, transcript: transcriptText, type: 'upload', audio_url: audioUrl,
+                title, transcript: transcriptText || '', type: 'upload', audio_url: audioUrl,
+                user_id: user?.id
             }).select().single()
 
-            if (noteError) { showToast('Not kaydedilemedi: ' + noteError.message, 'error') }
-            else if (noteData) {
-                showToast('Dosya başarıyla kaydedildi!', 'success')
-                setSavedNote({
-                    id: noteData.id,
-                    title: title,
-                    transcript: transcriptText || '',
-                    audio_url: audioUrl,
-                    duration: '',
-                })
+            if (noteError) throw noteError
+            
+            showToast('Dosya başarıyla kaydedildi!', 'success')
+            setSavedNote({
+                id: noteData.id,
+                title: title,
+                transcript: transcriptText || '',
+                audio_url: audioUrl,
+                duration: '',
+            })
 
-                // Auto-sync to Google Drive if connected
-                const googleToken = localStorage.getItem('google_access_token')
-                if (googleToken) {
-                    try {
-                        const formData = new FormData()
-                        formData.append('file', file)
-                        formData.append('accessToken', googleToken)
-                        formData.append('fileName', title + file.name.substring(file.name.lastIndexOf('.')))
-
-                        // Upload in background
-                        fetch('/api/drive/upload', {
-                            method: 'POST',
-                            body: formData
-                        }).catch(err => console.error('Upload auto-sync to Drive failed:', err))
-                    } catch (err) {
-                        console.error('Drive sync failed:', err)
-                    }
-                }
+            // Auto-sync to Google Drive
+            const googleToken = localStorage.getItem('google_access_token')
+            if (googleToken) {
+                const formData = new FormData()
+                formData.append('file', file)
+                formData.append('accessToken', googleToken)
+                formData.append('fileName', title + file.name.substring(file.name.lastIndexOf('.')))
+                fetch('/api/drive/upload', { method: 'POST', body: formData }).catch(e => console.error(e))
             }
         } catch (err: any) {
             showToast('Hata: ' + err.message, 'error')
         } finally {
-            setTranscribing(false)
             setSaving(false)
         }
     }

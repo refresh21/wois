@@ -72,9 +72,12 @@ function UploadContent() {
                 if (isAudio) {
                     audioUrl = publicUrl
                     setTranscribing(true)
-                    const formData = new FormData()
-                    formData.append('audio', file, file.name)
-                    const res = await fetch('/api/transcribe', { method: 'POST', body: formData })
+                    // Change: Send URL instead of file to avoid Vercel 4.5MB limit
+                    const res = await fetch('/api/transcribe', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ audioUrl: publicUrl }) 
+                    })
                     const resData = await res.json()
                     if (resData.transcript) transcript = resData.transcript
                     setTranscribing(false)

@@ -2,22 +2,44 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
     try {
-        const formData = await req.formData()
-        const audioFile = formData.get('audio') as File
+        let audioFile: File | Blob | null = null
+        let fileName = 'audio.webm'
+        let mimeType = 'audio/webm'
 
-        if (!audioFile) {
-            return NextResponse.json({ error: 'No audio file provided' }, { status: 400 })
+        // Check if it's a JSON request with a URL or a FormData request with a file
+        const contentType = req.headers.get('content-type') || ''
+        
+        if (contentType.includes('application/json')) {
+            const { audioUrl } = await req.json()
+            if (!audioUrl) return NextResponse.json({ error: 'No audio URL provided' }, { status: 400 })
+            
+            console.log('Fetching audio from URL:', audioUrl)
+            const audioRes = await fetch(audioUrl)
+            if (!audioRes.ok) throw new Error('Failed to fetch audio from URL')
+            
+            const arrayBuffer = await audioRes.arrayBuffer()
+            mimeType = audioRes.headers.get('content-type') || 'audio/webm'
+            audioFile = new Blob([arrayBuffer], { type: mimeType })
+            
+            // Extract filename from URL or default
+            const urlPath = new URL(audioUrl).pathname
+            const extractedName = urlPath.split('/').pop()
+            if (extractedName) fileName = extractedName
+        } else {
+            const formData = await req.formData()
+            audioFile = formData.get('audio') as File
+            if (!audioFile) return NextResponse.json({ error: 'No audio file provided' }, { status: 400 })
+            mimeType = audioFile.type || 'audio/webm'
+            fileName = (audioFile as any).name || 'audio.webm'
         }
 
-        const mimeType = audioFile.type || 'audio/webm'
-        let fileName = audioFile.name || 'audio.webm'
         if (mimeType.includes('opus') && !fileName.endsWith('.ogg')) {
             fileName = fileName.replace(/\.[^.]+$/, '') + '.ogg'
         }
-        console.log('Sending to Groq:', fileName, 'MIME:', mimeType, 'size:', audioFile.size)
+        console.log('Sending to Groq:', fileName, 'MIME:', mimeType, 'size:', (audioFile as any).size)
 
         const groqForm = new FormData()
-        groqForm.append('file', audioFile, fileName)
+        groqForm.append('file', audioFile as any, fileName)
         groqForm.append('model', 'whisper-large-v3')
         groqForm.append('response_format', 'verbose_json')
 
