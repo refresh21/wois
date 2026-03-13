@@ -4,16 +4,16 @@ export async function POST(req: NextRequest) {
     try {
         const { messages, context } = await req.json()
 
-        if (!process.env.GROQ_API_KEY) {
-            console.error('GROQ_API_KEY is missing')
-            return NextResponse.json({ error: 'Groq API Key defined değil' }, { status: 500 })
+        if (!process.env.OPENROUTER_API_KEY) {
+            console.error('OPENROUTER_API_KEY is missing')
+            return NextResponse.json({ error: 'OpenRouter API Key defined değil' }, { status: 500 })
         }
 
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: 'Invalid messages' }, { status: 400 })
         }
 
-        console.log('Chat API Request (Groq):', { 
+        console.log('Chat API Request (OpenRouter):', { 
             messageCount: messages.length, 
             contextCount: context?.length || 0 
         })
@@ -36,15 +36,17 @@ Kullanıcı ile her zaman TÜRKÇE konuş. Yanıtlarını verirken:
 
 Senin adın Wois AI.`
 
-        console.log('Calling Groq Chat...')
-        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        console.log('Calling OpenRouter Chat...')
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://wois.vercel.app',
+                'X-Title': 'Wois AI'
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: 'google/gemini-2.0-flash-001',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     ...messages
@@ -52,16 +54,25 @@ Senin adın Wois AI.`
             }),
         })
 
-        if (!groqResponse.ok) {
-            const errorData = await groqResponse.json().catch(() => ({ error: 'Could not parse error JSON' }))
-            console.error('Groq Chat Error:', JSON.stringify(errorData, null, 2))
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Could not parse error JSON' }))
+            console.error('OpenRouter Chat Error:', JSON.stringify(errorData, null, 2))
+            
+            // Helpful message for rate limit
+            if (response.status === 429) {
+                return NextResponse.json({ 
+                    error: 'Hız Sınırı Aşıldı',
+                    message: 'AI şu an çok meşgul. Lütfen bir dakika bekleyip tekrar dene.' 
+                }, { status: 429 })
+            }
+
             return NextResponse.json({ 
                 error: 'AI Error', 
                 details: errorData 
-            }, { status: groqResponse.status })
+            }, { status: response.status })
         }
 
-        const data = await groqResponse.json()
+        const data = await response.json()
         const assistantMessage = data.choices?.[0]?.message?.content || 'Üzgünüm, bir hata oluştu.'
 
         return NextResponse.json({ message: assistantMessage })
