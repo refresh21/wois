@@ -46,7 +46,7 @@ Senin adın Wois AI.`
                 'X-Title': 'Wois AI'
             },
             body: JSON.stringify({
-                model: 'google/gemini-2.0-flash-001',
+                model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     ...messages
@@ -58,7 +58,7 @@ Senin adın Wois AI.`
             const errorData = await response.json().catch(() => ({ error: 'Could not parse error JSON' }))
             console.error('OpenRouter Chat Error:', JSON.stringify(errorData, null, 2))
             
-            // Helpful message for rate limit
+            // Helpful message for rate limit and other common errors in Turkish
             if (response.status === 429) {
                 return NextResponse.json({ 
                     error: 'Hız Sınırı Aşıldı',
@@ -66,8 +66,23 @@ Senin adın Wois AI.`
                 }, { status: 429 })
             }
 
+            if (response.status === 401 || response.status === 403) {
+                return NextResponse.json({ 
+                    error: 'Yetkilendirme Hatası',
+                    message: 'API anahtarı geçersiz veya yetkisiz. Lütfen yöneticiye danışın.' 
+                }, { status: response.status })
+            }
+
+            if (response.status === 404) {
+                return NextResponse.json({ 
+                    error: 'Model Bulunamadı',
+                    message: 'Seçilen AI modeli şu an kullanım dışı. Lütfen daha sonra tekrar deneyin.' 
+                }, { status: 404 })
+            }
+
             return NextResponse.json({ 
                 error: 'AI Error', 
+                message: 'AI yanıt verirken beklenmedik bir hata oluştu.',
                 details: errorData 
             }, { status: response.status })
         }

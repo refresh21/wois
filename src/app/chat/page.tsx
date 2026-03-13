@@ -87,10 +87,11 @@ export default function ChatPage() {
             })
 
             const data = await res.json()
-            if (data.message) {
+            if (data.message && res.ok) {
                 setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
             } else {
-                const errorMsg = data.details?.error?.message || data.error || t('common.error')
+                // Prioritize our custom error message, then OpenRouter details, then translation
+                const errorMsg = data.message || data.details?.error?.message || data.error || t('common.error')
                 showToast(errorMsg, 'error')
             }
         } catch (err: any) {

@@ -40,14 +40,16 @@ Cevap dilin HER ZAMAN TÜRKÇE olmalıdır. Lütfen sıradan bir özet yerine an
             })
         }
 
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://wois.vercel.app',
+                'X-Title': 'Wois AI Summary'
             },
             body: JSON.stringify({
-                model: mediaUrl ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama-3.3-70b-versatile',
+                model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
                 messages: messages,
             }),
         })
@@ -55,8 +57,12 @@ Cevap dilin HER ZAMAN TÜRKÇE olmalıdır. Lütfen sıradan bir özet yerine an
         if (!response.ok) {
             const errorData = await response.json().catch(() => null)
             const errorText = errorData ? JSON.stringify(errorData) : await response.text()
-            console.error('Groq API error:', errorText)
-            return NextResponse.json({ error: 'Summarization failed', details: errorText }, { status: response.status })
+            console.error('OpenRouter Summary error:', errorText)
+            return NextResponse.json({ 
+                error: 'Summarization failed', 
+                message: 'Özetleme sırasında bir hata oluştu. Lütfen tekrar deneyin.',
+                details: errorText 
+            }, { status: response.status })
         }
 
         const data = await response.json()

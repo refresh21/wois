@@ -94,11 +94,12 @@ export default function SummarizePage() {
                 body: JSON.stringify({ text: textToSummarize }),
             })
             const data = await res.json()
-            if (data.summary) {
+            if (data.summary && res.ok) {
                 setSummaryResult(data.summary)
                 showToast('Özetleme tamamlandı', 'success')
             } else {
-                showToast('Özetleme başarısız: ' + (data.error || 'Bilinmeyen hata'), 'error')
+                const errorMsg = data.message || data.error || 'Bilinmeyen hata'
+                showToast('Özetleme başarısız: ' + errorMsg, 'error')
             }
         } catch (err: any) {
             showToast('Özetleme hatası: ' + err.message, 'error')
