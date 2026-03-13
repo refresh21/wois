@@ -56,9 +56,8 @@ function UploadContent() {
         setUploading(true)
         setProgress(0)
         try {
+            let lastNoteId = ''
             const mediaUrls: string[] = []
-            let audioUrl: string | null = null
-            let transcript: string | null = null
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i]
@@ -66,36 +65,76 @@ function UploadContent() {
                 const bucket = isAudio ? 'recordings' : 'media'
                 const sanitizedName = sanitizeFilename(file.name)
                 const fileName = `${Date.now()}_${sanitizedName}`
+                
                 const { data, error } = await supabase.storage.from(bucket).upload(fileName, file, { contentType: file.type })
                 if (error) { console.error('Upload error:', error); continue }
+                
                 const publicUrl = supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl
+                
                 if (isAudio) {
-                    audioUrl = publicUrl
                     setTranscribing(true)
-                    // Change: Send URL instead of file to avoid Vercel 4.5MB limit
-                    const res = await fetch('/api/transcribe', { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ audioUrl: publicUrl }) 
-                    })
-                    const resData = await res.json()
-                    if (resData.transcript) transcript = resData.transcript
+                    let transcript: string | null = null
+                    try {
+                        const res = await fetch('/api/transcribe', { 
+                            method: 'POST', 
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audioUrl: publicUrl }) 
+                        })
+                        const resData = await res.json()
+                        if (resData.transcript) transcript = resData.transcript
+                    } catch (e) { console.error('Transcription error:', e) }
                     setTranscribing(false)
+
+                    // Create individual note for each audio file
+                    const title = noteTitle.trim() ? (files.length > 1 ? `${noteTitle} (${file.name})` : noteTitle) : file.name
+                    const { data: noteData, error: noteError } = await supabase.from('notes').insert({
+                        title, transcript, type: 'upload',
+                        audio_url: publicUrl, media_urls: null, personal_notes: noteText || null,
+                        user_id: user.id
+                    }).select().single()
+                    
+                    if (noteError) console.error('Save error:', noteError)
+                    else if (noteData) lastNoteId = noteData.id
                 } else {
-                    mediaUrls.push(publicUrl)
+                    if (isMediaMode) {
+                        mediaUrls.push(publicUrl)
+                    } else {
+                        // For non-audio files in upload mode, create individual notes
+                        const title = noteTitle.trim() ? (files.length > 1 ? `${noteTitle} (${file.name})` : noteTitle) : file.name
+                        const { data: noteData, error: noteError } = await supabase.from('notes').insert({
+                            title, transcript: null, type: 'upload',
+                            audio_url: null, media_urls: [publicUrl], personal_notes: noteText || null,
+                            user_id: user.id
+                        }).select().single()
+                        if (noteData) lastNoteId = noteData.id
+                    }
                 }
                 setProgress(Math.round(((i + 1) / files.length) * 100))
             }
 
-            const title = noteTitle.trim() || (isMediaMode ? `${t('nav.media')} - ${new Date().toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}` : `${t('nav.upload')} - ${new Date().toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}`)
-            const { data: noteData, error: noteError } = await supabase.from('notes').insert({
-                title, transcript: transcript || noteText || null, type: isMediaMode ? 'media' : 'upload',
-                audio_url: audioUrl, media_urls: mediaUrls.length > 0 ? mediaUrls : null, personal_notes: noteText || null,
-                user_id: user.id
-            }).select().single()
+            // After loop: Handle media group if files were images/videos in media mode
+            if (isMediaMode && mediaUrls.length > 0) {
+                const title = noteTitle.trim() || `${t('nav.media')} - ${new Date().toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}`
+                const { data: noteData, error: noteError } = await supabase.from('notes').insert({
+                    title, transcript: null, type: 'media',
+                    audio_url: null, media_urls: mediaUrls, personal_notes: noteText || null,
+                    user_id: user.id
+                }).select().single()
 
-            if (noteError) showToast('Kaydetme hatası: ' + noteError.message, 'error')
-            else { showToast('Başarıyla yüklendi ve kaydedildi', 'success'); router.push(`/note/${noteData.id}`) }
+                if (noteError) showToast('Kaydetme hatası: ' + noteError.message, 'error')
+                else if (noteData) {
+                    showToast('Başarıyla yüklendi ve kaydedildi', 'success')
+                    router.push(`/note/${noteData.id}`)
+                    return
+                }
+            }
+
+            if (lastNoteId) {
+                showToast('Tüm dosyalar başarıyla yüklendi ve kaydedildi', 'success')
+                router.push('/memory') // Go to memory to see all individual notes
+            } else {
+                showToast('Yüklenecek geçerli bir dosya bulunamadı', 'error')
+            }
         } catch (err: any) {
             showToast('Hata: ' + err.message, 'error')
         } finally {
