@@ -56,6 +56,9 @@ function UploadContent() {
         setUploading(true)
         setProgress(0)
         try {
+            let totalFiles = files.length
+            let successCount = 0
+            let errorCount = 0
             let lastNoteId = ''
             const mediaUrls: string[] = []
 
@@ -64,79 +67,106 @@ function UploadContent() {
                 const isAudio = file.type.startsWith('audio/')
                 const bucket = isAudio ? 'recordings' : 'media'
                 const sanitizedName = sanitizeFilename(file.name)
-                const fileName = `${Date.now()}_${sanitizedName}`
+                // Use random suffix for better uniqueness
+                const randomSuffix = Math.random().toString(36).substring(2, 7)
+                const fileName = `${Date.now()}_${randomSuffix}_${sanitizedName}`
                 
-                const { data, error } = await supabase.storage.from(bucket).upload(fileName, file, { contentType: file.type })
-                if (error) { console.error('Upload error:', error); continue }
-                
-                const publicUrl = supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl
-                
-                if (isAudio) {
-                    setTranscribing(true)
-                    let transcript: string | null = null
-                    try {
-                        const res = await fetch('/api/transcribe', { 
-                            method: 'POST', 
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ audioUrl: publicUrl }) 
-                        })
-                        const resData = await res.json()
-                        if (resData.transcript) transcript = resData.transcript
-                    } catch (e) { console.error('Transcription error:', e) }
-                    setTranscribing(false)
-
-                    // Create individual note for each audio file
-                    const title = noteTitle.trim() ? (files.length > 1 ? `${noteTitle} (${file.name})` : noteTitle) : file.name
-                    const { data: noteData, error: noteError } = await supabase.from('notes').insert({
-                        title, transcript, type: 'upload',
-                        audio_url: publicUrl, media_urls: null, personal_notes: noteText || null,
-                        user_id: user.id
-                    }).select().single()
+                try {
+                    const { data, error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file, { contentType: file.type })
+                    if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`)
                     
-                    if (noteError) console.error('Save error:', noteError)
-                    else if (noteData) lastNoteId = noteData.id
-                } else {
-                    if (isMediaMode) {
-                        mediaUrls.push(publicUrl)
-                    } else {
-                        // For non-audio files in upload mode, create individual notes
+                    const publicUrl = supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl
+                    
+                    if (isAudio) {
+                        setTranscribing(true)
+                        let transcript: string | null = null
+                        try {
+                            const res = await fetch('/api/transcribe', { 
+                                method: 'POST', 
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ audioUrl: publicUrl }) 
+                            })
+                            const resData = await res.json()
+                            if (resData.transcript) transcript = resData.transcript
+                        } catch (e) { 
+                            console.error(`Transcription error for ${file.name}:`, e)
+                            // We still want to save the note even if transcription fails
+                        }
+                        setTranscribing(false)
+
                         const title = noteTitle.trim() ? (files.length > 1 ? `${noteTitle} (${file.name})` : noteTitle) : file.name
                         const { data: noteData, error: noteError } = await supabase.from('notes').insert({
-                            title, transcript: null, type: 'upload',
-                            audio_url: null, media_urls: [publicUrl], personal_notes: noteText || null,
+                            title, transcript, type: 'upload',
+                            audio_url: publicUrl, media_urls: null, personal_notes: noteText || null,
                             user_id: user.id
                         }).select().single()
-                        if (noteData) lastNoteId = noteData.id
+                        
+                        if (noteError) throw new Error(`Database error: ${noteError.message}`)
+                        if (noteData) {
+                            lastNoteId = noteData.id
+                            successCount++
+                        }
+                    } else {
+                        if (isMediaMode) {
+                            mediaUrls.push(publicUrl)
+                            // Success is counted after the loop for media mode grouping
+                        } else {
+                            const title = noteTitle.trim() ? (files.length > 1 ? `${noteTitle} (${file.name})` : noteTitle) : file.name
+                            const { data: noteData, error: noteError } = await supabase.from('notes').insert({
+                                title, transcript: null, type: 'upload',
+                                audio_url: null, media_urls: [publicUrl], personal_notes: noteText || null,
+                                user_id: user.id
+                            }).select().single()
+                            
+                            if (noteError) throw new Error(`Database error: ${noteError.message}`)
+                            if (noteData) {
+                                lastNoteId = noteData.id
+                                successCount++
+                            }
+                        }
                     }
+                } catch (err: any) {
+                    console.error(`Error processing ${file.name}:`, err)
+                    errorCount++
+                    showToast(`${file.name} yüklenemedi: ${err.message}`, 'error')
                 }
                 setProgress(Math.round(((i + 1) / files.length) * 100))
             }
 
             // After loop: Handle media group if files were images/videos in media mode
             if (isMediaMode && mediaUrls.length > 0) {
-                const title = noteTitle.trim() || `${t('nav.media')} - ${new Date().toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}`
-                const { data: noteData, error: noteError } = await supabase.from('notes').insert({
-                    title, transcript: null, type: 'media',
-                    audio_url: null, media_urls: mediaUrls, personal_notes: noteText || null,
-                    user_id: user.id
-                }).select().single()
+                try {
+                    const title = noteTitle.trim() || `${t('nav.media')} - ${new Date().toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}`
+                    const { data: noteData, error: noteError } = await supabase.from('notes').insert({
+                        title, transcript: null, type: 'media',
+                        audio_url: null, media_urls: mediaUrls, personal_notes: noteText || null,
+                        user_id: user.id
+                    }).select().single()
 
-                if (noteError) showToast('Kaydetme hatası: ' + noteError.message, 'error')
-                else if (noteData) {
-                    showToast('Başarıyla yüklendi ve kaydedildi', 'success')
-                    router.push(`/note/${noteData.id}`)
-                    return
+                    if (noteError) throw new Error(noteError.message)
+                    if (noteData) {
+                        showToast(`${mediaUrls.length} medya başarıyla yüklendi`, 'success')
+                        router.push(`/note/${noteData.id}`)
+                        return
+                    }
+                } catch (err: any) {
+                    showToast(`Medya kaydetme hatası: ${err.message}`, 'error')
+                    errorCount += mediaUrls.length
                 }
             }
 
-            if (lastNoteId) {
-                showToast('Tüm dosyalar başarıyla yüklendi ve kaydedildi', 'success')
-                router.push('/memory') // Go to memory to see all individual notes
-            } else {
-                showToast('Yüklenecek geçerli bir dosya bulunamadı', 'error')
+            if (successCount > 0) {
+                if (errorCount > 0) {
+                    showToast(`${successCount} dosya başarıyla yüklendi, ${errorCount} dosya başarısız oldu.`, 'info')
+                } else {
+                    showToast(`Tüm dosyalar (${successCount}) başarıyla yüklendi.`, 'success')
+                }
+                router.push('/memory')
+            } else if (errorCount > 0) {
+                showToast('Yükleme başarısız oldu. Lütfen dosyaları ve internet bağlantısını kontrol edin.', 'error')
             }
         } catch (err: any) {
-            showToast('Hata: ' + err.message, 'error')
+            showToast('Beklenmedik bir hata oluştu: ' + err.message, 'error')
         } finally {
             setUploading(false)
             setTranscribing(false)
