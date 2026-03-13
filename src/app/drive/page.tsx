@@ -23,11 +23,43 @@ export default function DrivePage() {
 
     useEffect(() => { checkConnection() }, [])
 
-    const checkConnection = () => {
+    const checkConnection = async () => {
         const token = localStorage.getItem('google_access_token')
         const expiry = localStorage.getItem('google_token_expiry')
-        if (token && expiry && Date.now() < parseInt(expiry)) { setConnected(true); fetchFiles(token) }
-        else { setConnected(false); setLoading(false) }
+        const refreshToken = localStorage.getItem('google_refresh_token')
+
+        if (token && expiry && Date.now() < parseInt(expiry)) { 
+            setConnected(true); 
+            fetchFiles(token) 
+            return;
+        }
+
+        if (refreshToken) {
+            console.log('Token expired, attempting refresh in Drive page...')
+            try {
+                const res = await fetch('/api/drive/refresh', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                })
+                const data = await res.json()
+                if (data.access_token) {
+                    localStorage.setItem('google_access_token', data.access_token)
+                    localStorage.setItem('google_token_expiry', String(Date.now() + data.expires_in * 1000))
+                    if (data.refresh_token) {
+                        localStorage.setItem('google_refresh_token', data.refresh_token)
+                    }
+                    setConnected(true)
+                    fetchFiles(data.access_token)
+                    return
+                }
+            } catch (err) {
+                console.error('Failed to refresh google token in Drive page:', err)
+            }
+        }
+
+        setConnected(false); 
+        setLoading(false);
     }
 
     const connectDrive = () => {

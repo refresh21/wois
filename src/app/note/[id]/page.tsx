@@ -223,10 +223,37 @@ export default function NoteDetailPage() {
         return dict[locale][key] || key
     }
 
-    const checkGoogleToken = () => {
+    const checkGoogleToken = async () => {
         const token = localStorage.getItem('google_access_token')
         const expiry = localStorage.getItem('google_token_expiry')
-        if (!token || !expiry || Date.now() >= parseInt(expiry)) {
+        const refreshToken = localStorage.getItem('google_refresh_token')
+
+        const isExpired = !token || !expiry || Date.now() >= parseInt(expiry)
+
+        if (isExpired && refreshToken) {
+            console.log('Token expired, attempting refresh...')
+            try {
+                const res = await fetch('/api/drive/refresh', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                })
+                const data = await res.json()
+                if (data.access_token) {
+                    localStorage.setItem('google_access_token', data.access_token)
+                    localStorage.setItem('google_token_expiry', String(Date.now() + data.expires_in * 1000))
+                    if (data.refresh_token) {
+                        localStorage.setItem('google_refresh_token', data.refresh_token)
+                    }
+                    console.log('Token refreshed successfully')
+                    return data.access_token
+                }
+            } catch (err) {
+                console.error('Failed to refresh google token:', err)
+            }
+        }
+
+        if (isExpired) {
             showToast(t_drive('connect_required'), 'error');
             router.push('/drive');
             return null;
@@ -235,7 +262,7 @@ export default function NoteDetailPage() {
     }
 
     const uploadToDrive = async (blob: Blob, fileName: string, setIsSaving: (s: boolean) => void, resourceType: string) => {
-        const token = checkGoogleToken()
+        const token = await checkGoogleToken()
         if (!token) return
 
         setIsSaving(true)
@@ -267,7 +294,8 @@ export default function NoteDetailPage() {
         const docDef = getDocDefinition()
         if (!docDef) return
 
-        if (!checkGoogleToken()) return;
+        const token = await checkGoogleToken()
+        if (!token) return;
 
         setSavingPdf(true)
         try {
