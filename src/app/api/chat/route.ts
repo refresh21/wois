@@ -13,6 +13,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid messages' }, { status: 400 })
         }
 
+        console.log('Chat API Request:', { 
+            messageCount: messages.length, 
+            contextCount: context?.length || 0 
+        })
+
         // Construct context string from selected transcripts
         const contextString = context && Array.isArray(context) && context.length > 0
             ? `\n\nHafızadan seçilen notların içeriği şu şekildedir:\n---\n${context.join('\n\n---\n')}\n---`
@@ -31,6 +36,7 @@ Kullanıcı ile her zaman TÜRKÇE konuş. Yanıtlarını verirken:
 
 Senin adın Wois AI.`
 
+        console.log('Calling OpenRouter...')
         const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -49,9 +55,12 @@ Senin adın Wois AI.`
         })
 
         if (!openRouterResponse.ok) {
-            const errorData = await openRouterResponse.json()
-            console.error('OpenRouter error:', errorData)
-            return NextResponse.json({ error: 'AI Error', details: errorData }, { status: openRouterResponse.status })
+            const errorData = await openRouterResponse.json().catch(() => ({ error: 'Could not parse error JSON' }))
+            console.error('OpenRouter Error Response:', JSON.stringify(errorData, null, 2))
+            return NextResponse.json({ 
+                error: 'AI Error', 
+                details: errorData 
+            }, { status: openRouterResponse.status })
         }
 
         const data = await openRouterResponse.json()
