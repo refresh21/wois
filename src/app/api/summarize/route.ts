@@ -45,6 +45,8 @@ Cevap dilin HER ZAMAN TÜRKÇE olmalıdır. Lütfen sıradan bir özet yerine an
             headers: {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://wois.vercel.app',
+                'X-Title': 'Wois AI',
             },
             body: JSON.stringify({
                 model: 'google/gemini-2.0-flash-lite-preview-02-05:free',

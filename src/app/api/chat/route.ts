@@ -42,6 +42,8 @@ Senin adın Wois'e Sor.`
             headers: {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://wois.vercel.app',
+                'X-Title': 'Wois AI',
             },
             body: JSON.stringify({
                 model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
@@ -54,7 +56,7 @@ Senin adın Wois'e Sor.`
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Could not parse error JSON' }))
-            console.error('OpenRouter Chat Error:', JSON.stringify(errorData, null, 2))
+            console.error(`OpenRouter Chat Error (${response.status}):`, JSON.stringify(errorData, null, 2))
             
             // Helpful message for rate limit and other common errors in Turkish
             if (response.status === 429) {
