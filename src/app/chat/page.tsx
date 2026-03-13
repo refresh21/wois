@@ -97,10 +97,16 @@ export default function ChatPage() {
         setLoading(true)
         try {
             const res = await fetch(`/api/chat/history/${chatId}`)
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+            const contentType = res.headers.get('content-type')
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Yanıt JSON formatında değil')
+            }
             const data = await res.json()
             if (data.messages) setMessages(data.messages)
-        } catch (err) {
-            showToast('Sohbet yüklenemedi', 'error')
+        } catch (err: any) {
+            console.error('Chat load error:', err)
+            showToast(`Sohbet yüklenemedi: ${err.message}`, 'error')
         }
         setLoading(false)
     }
@@ -148,13 +154,17 @@ export default function ChatPage() {
                         title: userMsgContent.length > 30 ? userMsgContent.substring(0, 30) + '...' : userMsgContent 
                     })
                 })
+                if (!chatRes.ok) {
+                    const errorText = await chatRes.text()
+                    throw new Error(`Sohbet oturumu oluşturulamadı (${chatRes.status}): ${errorText.substring(0, 50)}`)
+                }
                 const chatData = await chatRes.json()
                 if (chatData.chat) {
                     chatId = chatData.chat.id
                     setCurrentChatId(chatId)
                     fetchHistory() // Refresh the list
                 } else {
-                    throw new Error('Chat session could not be created')
+                    throw new Error('Sohbet oturumu verisi alınamadı')
                 }
             }
 
@@ -172,15 +182,30 @@ export default function ChatPage() {
                 })
             })
 
+            if (!res.ok) {
+                // If not ok, try to get error message from JSON or fallback to text/status
+                let errorMsg = `Sunucu hatası (${res.status})`
+                try {
+                    const contentType = res.headers.get('content-type')
+                    if (contentType && contentType.includes('application/json')) {
+                        const errorData = await res.json()
+                        errorMsg = errorData.message || errorData.error || errorMsg
+                    } else {
+                        const text = await res.text()
+                        if (text) errorMsg = text.substring(0, 100)
+                    }
+                } catch (e) {}
+                throw new Error(errorMsg)
+            }
+
             const data = await res.json()
-            if (data.message && res.ok) {
+            if (data.message) {
                 const assistantMessage = { role: 'assistant', content: data.message } as Message
                 setMessages(prev => [...prev, assistantMessage])
                 // Save assistant message to DB
                 await saveMessage(chatId!, 'assistant', data.message)
             } else {
-                const errorMsg = data.message || data.details?.error?.message || data.error || t('common.error')
-                showToast(errorMsg, 'error')
+                throw new Error('AI yanıtı alınamadı')
             }
         } catch (err: any) {
             showToast(err.message, 'error')

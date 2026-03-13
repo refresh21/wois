@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
             contextCount: context?.length || 0 
         })
 
-        // Construct context string from selected transcripts
+        // Construct context string from selected transcripts (capped to avoid timeouts)
         const contextString = context && Array.isArray(context) && context.length > 0
-            ? `\n\nHafızadan seçilen notların içeriği şu şekildedir:\n---\n${context.join('\n\n---\n')}\n---`
+            ? `\n\nHafızadan seçilen notların içeriği şu şekildedir:\n---\n${context.map((c: string) => c.substring(0, 10000)).join('\n\n---\n')}\n---`
             : ''
 
         const systemPrompt = `Sen Wois uygulamasının "Voice Asistanı" asistanısın. Görevin, kullanıcının seçtiği ses kayıtları ve notlar üzerinden derinlemesine analizler yapmak, ona bu konuları öğretmek ve sorularını yanıtlamaktır.
