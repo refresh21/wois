@@ -6,10 +6,10 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const id = params.id
+    const { id } = await params
 
     try {
         const { data, error } = await supabase
@@ -29,10 +29,10 @@ export async function GET(
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const id = params.id
+    const { id } = await params
     const { role, content, userId } = await req.json()
 
     if (!userId) {
@@ -68,10 +68,10 @@ export async function POST(
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const id = params.id
+    const { id } = await params
 
     try {
         const { error } = await supabase
