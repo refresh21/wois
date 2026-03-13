@@ -42,11 +42,9 @@ Senin adın Wois AI.`
             headers: {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://wois.vercel.app',
-                'X-Title': 'Wois AI'
             },
             body: JSON.stringify({
-                model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
+                model: 'meta-llama/llama-3.1-8b-instruct:free',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     ...messages
