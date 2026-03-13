@@ -115,6 +115,86 @@ export default function Dashboard() {
     return d.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
+  if (authLoading) {
+    return (
+      <>
+        <Sidebar />
+        <main className="main-area">
+          <Header />
+          <div className="page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+            <div className="animate-pulse" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+              <span className="material-symbols-outlined">hourglass_empty</span> {t('common.loading')}
+            </div>
+          </div>
+        </main>
+      </>
+    )
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Sidebar />
+        <main className="main-area">
+          <Header />
+          <div className="page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+            <div className="animate-fade-in-up" style={{ 
+              background: 'var(--bg-card)', padding: '3.5rem 2rem', 
+              borderRadius: 'var(--radius-3xl)', maxWidth: '500px', width: '100%',
+              textAlign: 'center', border: '1px solid var(--border-color)',
+              boxShadow: 'var(--shadow-2xl)', position: 'relative', overflow: 'hidden'
+            }}>
+              <div style={{ 
+                position: 'absolute', top: 0, left: 0, right: 0, height: '4px', 
+                background: 'linear-gradient(90deg, var(--primary), #3b82f6)' 
+              }}></div>
+              
+              <div style={{ 
+                width: '90px', height: '90px', borderRadius: '45px', 
+                background: 'var(--blue-50)', color: 'var(--primary)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 2rem auto', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.2)'
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '48px' }}>analytics</span>
+              </div>
+              
+              <h1 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1rem', color: 'var(--text-main)', letterSpacing: '-0.025em' }}>
+                Wois Assistant
+              </h1>
+              
+              <p style={{ color: 'var(--text-light)', marginBottom: '2.5rem', lineHeight: 1.6, fontSize: '1.125rem' }}>
+                {t('auth.login_required_desc') || 'Notlarınıza, ses kayıtlarınıza ve AI analizlerinize erişmek için giriş yapın.'}
+              </p>
+              
+              <button 
+                onClick={() => (window as any).signInWithGoogle?.() || supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })}
+                style={{ 
+                  width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-xl)', 
+                  background: 'var(--primary)', color: 'white', fontWeight: 700, 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  gap: '1rem', border: 'none', cursor: 'pointer', fontSize: '1.125rem',
+                  boxShadow: '0 20px 25px -5px rgba(59, 130, 246, 0.3)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+              >
+                <img src="https://www.google.com/favicon.ico" alt="Google" style={{ width: '24px', height: '24px' }} />
+                {t('auth.login_google')}
+              </button>
+
+              <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', opacity: 0.5 }}>
+                <span className="material-symbols-outlined">shield</span>
+                <span className="material-symbols-outlined">lock</span>
+                <span className="material-symbols-outlined">cloud_done</span>
+              </div>
+            </div>
+          </div>
+        </main>
+      </>
+    )
+  }
+
   return (
     <>
       <Sidebar />
