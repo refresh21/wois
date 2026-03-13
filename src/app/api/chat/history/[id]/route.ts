@@ -72,6 +72,39 @@ export async function POST(
     }
 }
 
+export async function PATCH(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    if (!supabaseUrl || !supabaseServiceKey) {
+        return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 })
+    }
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const { id } = await params
+    const { is_pinned, title } = await req.json()
+
+    try {
+        const updateData: any = {}
+        if (is_pinned !== undefined) updateData.is_pinned = is_pinned
+        if (title !== undefined) updateData.title = title
+        updateData.updated_at = new Date().toISOString()
+
+        const { data, error } = await supabase
+            .from('chats')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single()
+
+        if (error) throw error
+
+        return NextResponse.json({ chat: data })
+    } catch (error: any) {
+        console.error('Update chat error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+}
+
 export async function DELETE(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }

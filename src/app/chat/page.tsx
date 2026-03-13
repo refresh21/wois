@@ -85,7 +85,15 @@ export default function ChatPage() {
         try {
             const res = await fetch(`/api/chat/history?userId=${user.id}`)
             const data = await res.json()
-            if (data.chats) setChats(data.chats)
+            if (data.chats) {
+                // Sort: Pinned first, then by updated_at
+                const sorted = [...data.chats].sort((a, b) => {
+                    if (a.is_pinned && !b.is_pinned) return -1
+                    if (!a.is_pinned && b.is_pinned) return 1
+                    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+                })
+                setChats(sorted)
+            }
         } catch (err) {
             console.error('History fetch error:', err)
         }
@@ -214,33 +222,83 @@ export default function ChatPage() {
         }
     }
 
+    const handlePinChat = async (id: string, currentPinned: boolean) => {
+        try {
+            const res = await fetch(`/api/chat/history/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_pinned: !currentPinned })
+            })
+            if (res.ok) {
+                fetchHistory()
+            }
+        } catch (err) {
+            console.error('Pin error:', err)
+        }
+    }
+
+    const handleDeleteChat = async (id: string) => {
+        if (!confirm('Bu sohbeti silmek istediğinizden emin misiniz?')) return
+        try {
+            const res = await fetch(`/api/chat/history/${id}`, {
+                method: 'DELETE'
+            })
+            if (res.ok) {
+                if (currentChatId === id) {
+                    handleNewChat()
+                }
+                fetchHistory()
+            }
+        } catch (err) {
+            console.error('Delete error:', err)
+        }
+    }
+
     const handleExportPDF = () => {
         if (messages.length === 0) return
         
-        const doc = new jsPDF()
-        doc.setFontSize(22)
-        doc.text('Voice Asistanı Sohbet Geçmişi', 14, 20)
-        doc.setFontSize(10)
-        doc.text(`Tarih: ${new Date().toLocaleString()}`, 14, 30)
+        try {
+            const doc = new jsPDF()
+            
+            // PDF Header
+            doc.setFillColor(37, 99, 235) // Primary color
+            doc.rect(0, 0, 210, 40, 'F')
+            
+            doc.setTextColor(255, 255, 255)
+            doc.setFontSize(24)
+            doc.text('Wois AI', 14, 20)
+            doc.setFontSize(12)
+            doc.text('Sohbet Analizi ve Notları', 14, 30)
+            
+            doc.setTextColor(100, 116, 139)
+            doc.setFontSize(9)
+            doc.text(`Tarih: ${new Date().toLocaleString('tr-TR')}`, 14, 48)
+            
+            const tableData = messages.map(m => [
+                m.role === 'user' ? 'SORU' : 'WOIS',
+                m.content
+            ])
 
-        const tableData = messages.map(m => [
-            m.role === 'user' ? 'Siz' : 'Voice Asistanı',
-            m.content
-        ])
+            autoTable(doc, {
+                startY: 55,
+                head: [['KİM', 'MESAJ']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10, fontStyle: 'bold' },
+                bodyStyles: { fontSize: 9, cellPadding: 5 },
+                columnStyles: {
+                    0: { cellWidth: 25, fontStyle: 'bold' },
+                    1: { cellWidth: 'auto' }
+                },
+                margin: { left: 14, right: 14 }
+            })
 
-        ;(doc as any).autoTable({
-            startY: 40,
-            head: [['Rol', 'Mesaj']],
-            body: tableData,
-            styles: { fontSize: 9, cellPadding: 3 },
-            columnStyles: {
-                0: { cellWidth: 30 },
-                1: { cellWidth: 'auto' }
-            }
-        })
-
-        doc.save(`wois-sohbet-${new Date().getTime()}.pdf`)
-        showToast('PDF İndirildi', 'success')
+            doc.save(`wois-analiz-${new Date().getTime()}.pdf`)
+            showToast('PDF Hazırlandı ve İndirildi', 'success')
+        } catch (err) {
+            console.error('PDF Error:', err)
+            showToast('PDF oluşturulurken bir hata oluştu', 'error')
+        }
     }
 
     const toggleNoteSelection = (note: Note) => {
@@ -357,18 +415,48 @@ export default function ChatPage() {
                             </button>
                         </div>
                         <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
-                            {loadingHistory ? (
-                                <p style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>Yükleniyor...</p>
-                            ) : chats.map(c => (
-                                <button
-                                    key={c.id}
-                                    onClick={() => loadChat(c.id)}
-                                    className={`chat-history-item ${currentChatId === c.id ? 'active' : ''}`}
-                                >
-                                    {c.title}
-                                </button>
-                            ))}
-                        </div>
+                            ) : (
+                                chats.map(c => (
+                                    <div 
+                                        key={c.id}
+                                        onClick={() => loadChat(c.id)}
+                                        className={`chat-history-item ${currentChatId === c.id ? 'active' : ''}`}
+                                        style={{ 
+                                            padding: '0.75rem', borderRadius: 'var(--radius-lg)', 
+                                            background: currentChatId === c.id ? 'var(--bg-surface)' : 'transparent',
+                                            border: `1px solid ${currentChatId === c.id ? 'var(--border-color)' : 'transparent'}`,
+                                            cursor: 'pointer', marginBottom: '0.25rem', position: 'relative',
+                                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: c.is_pinned ? 'var(--primary)' : 'var(--text-muted)' }}>
+                                            {c.is_pinned ? 'push_pin' : 'chat_bubble'}
+                                        </span>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <p style={{ fontSize: '0.8125rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                                                {c.title}
+                                            </p>
+                                            <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: 0 }}>{new Date(c.updated_at).toLocaleDateString()}</p>
+                                        </div>
+                                        
+                                        <div className="chat-actions" style={{ display: 'flex', gap: '0.25rem' }}>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handlePinChat(c.id, !!c.is_pinned); }}
+                                                style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: c.is_pinned ? 'var(--primary)' : 'var(--text-light)', display: 'flex' }}
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>push_pin</span>
+                                            </button>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteChat(c.id); }}
+                                                style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: 'var(--text-light)', display: 'flex' }}
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                     </div>
 
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -578,6 +666,13 @@ export default function ChatPage() {
                         .chat-history-sidebar {
                             display: none !important;
                         }
+                    }
+                    .chat-history-item .chat-actions {
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .chat-history-item:hover .chat-actions {
+                        opacity: 1;
                     }
                 `}</style>
             </main>
