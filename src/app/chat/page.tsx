@@ -8,8 +8,7 @@ import { useAuth } from '@/components/AuthContext'
 import { useLanguage } from '@/components/LanguageContext'
 import { useToast } from '@/components/ToastContext'
 import LoginModal from '@/components/LoginModal'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import { getPdfFontsVfs } from '@/lib/fonts/pdfUtils'
 
 interface Note {
     id: string
@@ -257,46 +256,115 @@ export default function ChatPage() {
         }
     }
 
-    const handleExportPDF = () => {
+    const parseMarkdownToPdfContent = (text: string) => {
+        const result: any[] = [];
+        // Match **bold**
+        const parts = text.split(/(\*\*.*?\*\*)/g);
+        
+        parts.forEach((part) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                result.push({ text: part.slice(2, -2), bold: true });
+            } else if (part) {
+                result.push({ text: part });
+            }
+        });
+        
+        return result;
+    }
+
+    const handleExportPDF = async () => {
         if (messages.length === 0) return
         
+        showToast('PDF Hazırlanıyor...', 'info')
+        
         try {
-            const doc = new jsPDF()
-            
-            // PDF Header
-            doc.setFillColor(37, 99, 235) // Primary color
-            doc.rect(0, 0, 210, 40, 'F')
-            
-            doc.setTextColor(255, 255, 255)
-            doc.setFontSize(24)
-            doc.text('Wois AI', 14, 20)
-            doc.setFontSize(12)
-            doc.text('Sohbet Analizi ve Notları', 14, 30)
-            
-            doc.setTextColor(100, 116, 139)
-            doc.setFontSize(9)
-            doc.text(`Tarih: ${new Date().toLocaleString('tr-TR')}`, 14, 48)
-            
-            const tableData = messages.map(m => [
-                m.role === 'user' ? 'SORU' : 'WOIS',
-                m.content
-            ])
+            const pdfMake = require('pdfmake/build/pdfmake')
+            const decodedVfs = getPdfFontsVfs()
 
-            autoTable(doc, {
-                startY: 55,
-                head: [['KİM', 'MESAJ']],
-                body: tableData,
-                theme: 'striped',
-                headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10, fontStyle: 'bold' },
-                bodyStyles: { fontSize: 9, cellPadding: 5 },
-                columnStyles: {
-                    0: { cellWidth: 25, fontStyle: 'bold' },
-                    1: { cellWidth: 'auto' }
+            pdfMake.vfs = decodedVfs;
+            if (pdfMake.virtualfs && pdfMake.virtualfs.storage) {
+                Object.assign(pdfMake.virtualfs.storage, decodedVfs)
+            }
+
+            pdfMake.fonts = {
+                Poppins: {
+                    normal: 'Poppins-Regular.ttf',
+                    bold: 'Poppins-Bold.ttf',
+                    italics: 'Poppins-Medium.ttf',
+                    bolditalics: 'Poppins-SemiBold.ttf'
+                }
+            }
+
+            const docDefinition = {
+                pageSize: 'A4',
+                pageMargins: [40, 60, 40, 60],
+                content: [
+                    {
+                        canvas: [
+                            { type: 'rect', x: -40, y: -60, w: 595, h: 40, color: '#2563eb' }
+                        ]
+                    },
+                    {
+                        text: 'Wois AI',
+                        style: 'header',
+                        margin: [0, -30, 0, 10],
+                        color: 'white'
+                    },
+                    {
+                        text: 'Sohbet Analizi ve Notları',
+                        style: 'subheader',
+                        margin: [0, -5, 0, 20],
+                        color: 'white'
+                    },
+                    {
+                        text: `Tarih: ${new Date().toLocaleString('tr-TR')}`,
+                        style: 'date',
+                        margin: [0, 20, 0, 10]
+                    },
+                    {
+                        table: {
+                            headerRows: 1,
+                            widths: [50, '*'],
+                            body: [
+                                [
+                                    { text: 'KİM', style: 'tableHeader' },
+                                    { text: 'MESAJ', style: 'tableHeader' }
+                                ],
+                                ...messages.map(m => [
+                                    { text: m.role === 'user' ? 'SORU' : 'WOIS', style: 'roleCell' },
+                                    { text: parseMarkdownToPdfContent(m.content), style: 'messageCell' }
+                                ])
+                            ]
+                        },
+                        layout: {
+                            hLineWidth: (i: number) => (i === 0 || i === 1) ? 0 : 0.5,
+                            vLineWidth: () => 0,
+                            hLineColor: () => '#e2e8f0',
+                            paddingLeft: () => 8,
+                            paddingRight: () => 8,
+                            paddingTop: () => 10,
+                            paddingBottom: () => 10,
+                            fillColor: (rowIndex: number) => {
+                                if (rowIndex === 0) return '#2563eb';
+                                return rowIndex % 2 === 0 ? '#f8fafc' : null;
+                            }
+                        }
+                    }
+                ],
+                styles: {
+                    header: { fontSize: 22, bold: true, font: 'Poppins' },
+                    subheader: { fontSize: 12, font: 'Poppins' },
+                    date: { fontSize: 9, color: '#64748b', font: 'Poppins' },
+                    tableHeader: { bold: true, fontSize: 10, color: 'white', font: 'Poppins', margin: [0, 5, 0, 5] },
+                    roleCell: { bold: true, fontSize: 9, font: 'Poppins', color: '#1e293b' },
+                    messageCell: { fontSize: 10, font: 'Poppins', lineHeight: 1.4, color: '#334155' }
                 },
-                margin: { left: 14, right: 14 }
-            })
+                defaultStyle: {
+                    font: 'Poppins'
+                }
+            }
 
-            doc.save(`wois-analiz-${new Date().getTime()}.pdf`)
+            pdfMake.createPdf(docDefinition).download(`wois-analiz-${new Date().getTime()}.pdf`)
             showToast('PDF Hazırlandı ve İndirildi', 'success')
         } catch (err) {
             console.error('PDF Error:', err)
