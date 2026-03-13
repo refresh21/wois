@@ -248,10 +248,18 @@ export default function ChatPage() {
                                             border: msg.role === 'assistant' ? '1px solid var(--border-color)' : 'none',
                                             boxShadow: msg.role === 'assistant' ? 'var(--shadow-sm)' : 'none',
                                             lineHeight: 1.6,
-                                            whiteSpace: 'pre-wrap',
                                             fontSize: '0.9375rem'
                                         }}>
-                                            {msg.content}
+                                            {msg.content.split('\n').map((line, lineIdx) => (
+                                                <div key={lineIdx} style={{ marginBottom: line.trim() === '' ? '0.75rem' : '0' }}>
+                                                    {line.split(/(\*\*.*?\*\*)/).map((part, partIdx) => {
+                                                        if (part.startsWith('**') && part.endsWith('**')) {
+                                                            return <strong key={partIdx} style={{ fontWeight: 800, color: msg.role === 'user' ? 'inherit' : 'var(--text-main)' }}>{part.slice(2, -2)}</strong>
+                                                        }
+                                                        return part
+                                                    })}
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 ))}
