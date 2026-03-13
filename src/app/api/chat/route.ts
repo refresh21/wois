@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
             ? `\n\nHafızadan seçilen notların içeriği şu şekildedir:\n---\n${context.join('\n\n---\n')}\n---`
             : ''
 
-        const systemPrompt = `Sen Wois uygulamasının "AI Eğitmeni" (AI Tutor) asistanısın. Görevin, kullanıcının seçtiği ses kayıtları ve notlar üzerinden derinlemesine analizler yapmak, ona bu konuları öğretmek ve sorularını yanıtlamaktır.
+        const systemPrompt = `Sen Wois uygulamasının "Voice Asistanı" asistanısın. Görevin, kullanıcının seçtiği ses kayıtları ve notlar üzerinden derinlemesine analizler yapmak, ona bu konuları öğretmek ve sorularını yanıtlamaktır.
 
 ${contextString}
 
@@ -34,7 +34,7 @@ Kullanıcı ile her zaman TÜRKÇE konuş. Yanıtlarını verirken:
 4. Eğer seçilen notlarda bir bilgi yoksa, genel bilgini kullanabilirsin ama bunu belirterek "Seçilen notlarda bu geçmiyor ancak genel olarak..." şeklinde ifade et.
 5. Hazırladığın başlıklarda ve önemli kelimelerde **kalın (bold)** yazım stilini kullan (Örn: **Konu Başlığı**). 
 
-Senin adın Wois AI.`
+Senin adın Voice Asistanı.`
 
         console.log('Calling OpenRouter Chat...')
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {

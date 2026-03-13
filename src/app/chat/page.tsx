@@ -8,6 +8,8 @@ import { useAuth } from '@/components/AuthContext'
 import { useLanguage } from '@/components/LanguageContext'
 import { useToast } from '@/components/ToastContext'
 import LoginModal from '@/components/LoginModal'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
 
 interface Note {
     id: string
@@ -17,8 +19,15 @@ interface Note {
 }
 
 interface Message {
+    id?: string
     role: 'user' | 'assistant'
     content: string
+}
+
+interface ChatHistory {
+    id: string
+    title: string
+    updated_at: string
 }
 
 export default function ChatPage() {
@@ -32,6 +41,11 @@ export default function ChatPage() {
     const [uploading, setUploading] = useState(false)
     const [showLoginModal, setShowLoginModal] = useState(false)
     
+    // History & Session
+    const [chats, setChats] = useState<ChatHistory[]>([])
+    const [currentChatId, setCurrentChatId] = useState<string | null>(null)
+    const [loadingHistory, setLoadingHistory] = useState(false)
+
     // Context Selection
     const [allNotes, setAllNotes] = useState<Note[]>([])
     const [selectedNotes, setSelectedNotes] = useState<Note[]>([])
@@ -51,6 +65,7 @@ export default function ChatPage() {
     useEffect(() => {
         if (user) {
             fetchNotes()
+            fetchHistory()
         }
     }, [user])
 
@@ -58,10 +73,55 @@ export default function ChatPage() {
         const { data, error } = await supabase
             .from('notes')
             .select('id, title, transcript, created_at')
-            .not('transcript', 'is', null) // Only notes with transcripts
+            .not('transcript', 'is', null)
             .order('created_at', { ascending: false })
         
         if (!error) setAllNotes(data || [])
+    }
+
+    const fetchHistory = async () => {
+        if (!user) return
+        setLoadingHistory(true)
+        try {
+            const res = await fetch(`/api/chat/history?userId=${user.id}`)
+            const data = await res.json()
+            if (data.chats) setChats(data.chats)
+        } catch (err) {
+            console.error('History fetch error:', err)
+        }
+        setLoadingHistory(false)
+    }
+
+    const loadChat = async (chatId: string) => {
+        setCurrentChatId(chatId)
+        setLoading(true)
+        try {
+            const res = await fetch(`/api/chat/history/${chatId}`)
+            const data = await res.json()
+            if (data.messages) setMessages(data.messages)
+        } catch (err) {
+            showToast('Sohbet yüklenemedi', 'error')
+        }
+        setLoading(false)
+    }
+
+    const handleNewChat = () => {
+        setCurrentChatId(null)
+        setMessages([])
+        setSelectedNotes([])
+    }
+
+    const saveMessage = async (chatId: string, role: string, content: string) => {
+        if (!user) return
+        try {
+            await fetch(`/api/chat/history/${chatId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, role, content })
+            })
+        } catch (err) {
+            console.error('Message save error:', err)
+        }
     }
 
     const handleSendMessage = async (e?: React.FormEvent) => {
@@ -69,12 +129,38 @@ export default function ChatPage() {
         if (!user) { setShowLoginModal(true); return }
         if (!inputValue.trim() || loading) return
 
-        const userMessage = { role: 'user', content: inputValue } as Message
+        const userMsgContent = inputValue.trim()
+        const userMessage = { role: 'user', content: userMsgContent } as Message
         setMessages(prev => [...prev, userMessage])
         setInputValue('')
         setLoading(true)
 
         try {
+            let chatId = currentChatId
+            
+            // If no active chat, create one
+            if (!chatId) {
+                const chatRes = await fetch('/api/chat/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: user.id, 
+                        title: userMsgContent.length > 30 ? userMsgContent.substring(0, 30) + '...' : userMsgContent 
+                    })
+                })
+                const chatData = await chatRes.json()
+                if (chatData.chat) {
+                    chatId = chatData.chat.id
+                    setCurrentChatId(chatId)
+                    fetchHistory() // Refresh the list
+                } else {
+                    throw new Error('Chat session could not be created')
+                }
+            }
+
+            // Save user message to DB
+            await saveMessage(chatId!, 'user', userMsgContent)
+
             const contextTranscripts = selectedNotes.map(n => `Başlık: ${n.title}\nİçerik: ${n.transcript}`)
             
             const res = await fetch('/api/chat', {
@@ -88,9 +174,11 @@ export default function ChatPage() {
 
             const data = await res.json()
             if (data.message && res.ok) {
-                setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
+                const assistantMessage = { role: 'assistant', content: data.message } as Message
+                setMessages(prev => [...prev, assistantMessage])
+                // Save assistant message to DB
+                await saveMessage(chatId!, 'assistant', data.message)
             } else {
-                // Prioritize our custom error message, then OpenRouter details, then translation
                 const errorMsg = data.message || data.details?.error?.message || data.error || t('common.error')
                 showToast(errorMsg, 'error')
             }
@@ -99,6 +187,35 @@ export default function ChatPage() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleExportPDF = () => {
+        if (messages.length === 0) return
+        
+        const doc = new jsPDF()
+        doc.setFontSize(22)
+        doc.text('Voice Asistanı Sohbet Geçmişi', 14, 20)
+        doc.setFontSize(10)
+        doc.text(`Tarih: ${new Date().toLocaleString()}`, 14, 30)
+
+        const tableData = messages.map(m => [
+            m.role === 'user' ? 'Siz' : 'Voice Asistanı',
+            m.content
+        ])
+
+        ;(doc as any).autoTable({
+            startY: 40,
+            head: [['Rol', 'Mesaj']],
+            body: tableData,
+            styles: { fontSize: 9, cellPadding: 3 },
+            columnStyles: {
+                0: { cellWidth: 30 },
+                1: { cellWidth: 'auto' }
+            }
+        })
+
+        doc.save(`wois-sohbet-${new Date().getTime()}.pdf`)
+        showToast('PDF İndirildi', 'success')
     }
 
     const toggleNoteSelection = (note: Note) => {
@@ -123,7 +240,6 @@ export default function ChatPage() {
             
             const publicUrl = supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl
             
-            // Transcribe if audio
             let transcript = ''
             if (file.type.startsWith('audio/')) {
                 const res = await fetch('/api/transcribe', {
@@ -135,7 +251,6 @@ export default function ChatPage() {
                 transcript = resData.transcript || ''
             }
 
-            // Add to selected context automatically
             const newNote = { id: data.path, title: file.name, transcript, created_at: new Date().toISOString() }
             setSelectedNotes(prev => [...prev, newNote])
             showToast(t('common.success'), 'success')
@@ -179,7 +294,7 @@ export default function ChatPage() {
                                 <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>psychology</span>
                             </div>
                             <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>{t('nav.chat')}</h2>
-                            <p style={{ color: 'var(--text-light)', marginBottom: '2rem' }}>{t('chat.subtitle')}</p>
+                            <p style={{ color: 'var(--text-light)', marginBottom: '2rem' }}>Voice Asistanı ile notlarınız üzerine sohbet edin.</p>
                             <button onClick={() => setShowLoginModal(true)} className="btn-primary" style={{ width: '100%' }}>{t('auth.login_google')}</button>
                         </div>
                     </div>
@@ -194,143 +309,196 @@ export default function ChatPage() {
             <Sidebar />
             <main className="main-area">
                 <Header />
-                <div className="page-content" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
+                <div className="page-content" style={{ height: 'calc(100vh - 100px)', display: 'flex', gap: '1.5rem' }}>
                     
-                    {/* Chat Header */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexShrink: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', color: 'var(--primary-invert)', padding: '0.5rem', borderRadius: 'var(--radius-default)' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>psychology</span>
+                    {/* Left Sidebar for History */}
+                    <div className="chat-history-sidebar" style={{ 
+                        width: '240px', background: 'var(--bg-card)', 
+                        borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border-color)',
+                        display: 'flex', flexDirection: 'column', overflow: 'hidden'
+                    }}>
+                        <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
+                            <button 
+                                onClick={handleNewChat}
+                                style={{ 
+                                    width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                    padding: '0.75rem', borderRadius: 'var(--radius-xl)', 
+                                    background: 'var(--primary)', color: 'white', border: 'none',
+                                    fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem'
+                                }}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>add</span>
+                                Yeni Sohbet
+                            </button>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+                            {loadingHistory ? (
+                                <p style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>Yükleniyor...</p>
+                            ) : chats.map(c => (
+                                <button
+                                    key={c.id}
+                                    onClick={() => loadChat(c.id)}
+                                    className={`chat-history-item ${currentChatId === c.id ? 'active' : ''}`}
+                                >
+                                    {c.title}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        {/* Chat Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', color: 'var(--primary-invert)', padding: '0.5rem', borderRadius: 'var(--radius-default)' }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>psychology</span>
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.025em' }}>Voice Asistanı</h2>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Derinlemesine öğretici analizler</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.025em' }}>{t('chat.title')}</h2>
-                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('chat.subtitle')}</p>
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {messages.length > 0 && (
+                                    <button 
+                                        onClick={handleExportPDF}
+                                        style={{ 
+                                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                            padding: '0.5rem 1rem', borderRadius: 'var(--radius-lg)', 
+                                            background: 'white', border: '1px solid var(--border-color)',
+                                            color: 'var(--text-main)', fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer'
+                                        }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>picture_as_pdf</span>
+                                        PDF İndir
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={() => setIsModalOpen(true)}
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                        padding: '0.5rem 1rem', borderRadius: 'var(--radius-lg)', 
+                                        background: selectedNotes.length > 0 ? 'var(--blue-50)' : 'var(--bg-hover)',
+                                        border: `1px solid ${selectedNotes.length > 0 ? 'var(--primary)' : 'var(--border-color)'}`,
+                                        color: selectedNotes.length > 0 ? 'var(--primary)' : 'var(--text-main)',
+                                        fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer'
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>auto_stories</span>
+                                    {selectedNotes.length > 0 ? `${selectedNotes.length} ${t('nav.memory')}` : t('chat.select_context')}
+                                </button>
                             </div>
                         </div>
 
-                        <button 
-                            onClick={() => setIsModalOpen(true)}
-                            style={{ 
-                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                                padding: '0.5rem 1rem', borderRadius: 'var(--radius-lg)', 
-                                background: selectedNotes.length > 0 ? 'var(--blue-50)' : 'var(--bg-hover)',
-                                border: `1px solid ${selectedNotes.length > 0 ? 'var(--primary)' : 'var(--border-color)'}`,
-                                color: selectedNotes.length > 0 ? 'var(--primary)' : 'var(--text-main)',
-                                fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer'
-                            }}
-                        >
-                            <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>auto_stories</span>
-                            {selectedNotes.length > 0 ? `${selectedNotes.length} ${t('nav.memory')}` : t('chat.select_context')}
-                        </button>
-                    </div>
-
-                    {/* Messages Container */}
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
-                        {messages.length === 0 ? (
-                            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', textAlign: 'center', opacity: 0.6 }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '4rem', marginBottom: '1rem' }}>forum</span>
-                                <p style={{ fontWeight: 600 }}>{t('chat.title')}</p>
-                                <p style={{ fontSize: '0.875rem' }}>{t('chat.subtitle')}</p>
-                                {selectedNotes.length === 0 && (
-                                    <div style={{ marginTop: '1.5rem', padding: '0.75rem 1rem', background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', fontSize: '0.8125rem', border: '1px solid var(--border-color)' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1rem', verticalAlign: 'middle', marginRight: '0.5rem' }}>info</span>
-                                        {t('chat.no_context')}
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                {messages.map((msg, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                                        <div style={{ 
-                                            maxWidth: '80%', padding: '0.875rem 1.25rem', borderRadius: 'var(--radius-xl)',
-                                            background: msg.role === 'user' ? 'var(--primary)' : 'var(--bg-surface)',
-                                            color: msg.role === 'user' ? 'var(--primary-invert)' : 'var(--text-main)',
-                                            border: msg.role === 'assistant' ? '1px solid var(--border-color)' : 'none',
-                                            boxShadow: msg.role === 'assistant' ? 'var(--shadow-sm)' : 'none',
-                                            lineHeight: 1.6,
-                                            fontSize: '0.9375rem'
-                                        }}>
-                                            {msg.content.split('\n').map((line, lineIdx) => (
-                                                <div key={lineIdx} style={{ marginBottom: line.trim() === '' ? '0.75rem' : '0' }}>
-                                                    {line.split(/(\*\*.*?\*\*)/).map((part, partIdx) => {
-                                                        if (part.startsWith('**') && part.endsWith('**')) {
-                                                            return <strong key={partIdx} style={{ fontWeight: 800, color: msg.role === 'user' ? 'inherit' : 'var(--text-main)' }}>{part.slice(2, -2)}</strong>
-                                                        }
-                                                        return part
-                                                    })}
-                                                </div>
-                                            ))}
+                        {/* Messages Container */}
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                            {messages.length === 0 ? (
+                                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', textAlign: 'center', opacity: 0.6 }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '4rem', marginBottom: '1rem' }}>forum</span>
+                                    <p style={{ fontWeight: 600 }}>Voice Asistanı</p>
+                                    <p style={{ fontSize: '0.875rem' }}>Sohbete başlamak için bir mesaj yazın veya hafızadan not seçin.</p>
+                                    {selectedNotes.length === 0 && (
+                                        <div style={{ marginTop: '1.5rem', padding: '0.75rem 1rem', background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', fontSize: '0.8125rem', border: '1px solid var(--border-color)' }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '1rem', verticalAlign: 'middle', marginRight: '0.5rem' }}>info</span>
+                                            {t('chat.no_context')}
                                         </div>
-                                    </div>
-                                ))}
-                                {loading && (
-                                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                                        <div style={{ padding: '0.875rem 1.25rem', background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border-color)', display: 'flex', gap: '4px' }}>
-                                            <div className="animate-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-muted)' }}></div>
-                                            <div className="animate-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-muted)', animationDelay: '0.2s' }}></div>
-                                            <div className="animate-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-muted)', animationDelay: '0.4s' }}></div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    {messages.map((msg, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                                            <div style={{ 
+                                                maxWidth: '80%', padding: '0.875rem 1.25rem', borderRadius: 'var(--radius-xl)',
+                                                background: msg.role === 'user' ? 'var(--primary)' : 'var(--bg-surface)',
+                                                color: msg.role === 'user' ? 'var(--primary-invert)' : 'var(--text-main)',
+                                                border: msg.role === 'assistant' ? '1px solid var(--border-color)' : 'none',
+                                                boxShadow: msg.role === 'assistant' ? 'var(--shadow-sm)' : 'none',
+                                                lineHeight: 1.6,
+                                                fontSize: '0.9375rem'
+                                            }}>
+                                                {msg.content.split('\n').map((line, lineIdx) => (
+                                                    <div key={lineIdx} style={{ marginBottom: line.trim() === '' ? '0.75rem' : '0' }}>
+                                                        {line.split(/(\*\*.*?\*\*)/).map((part, partIdx) => {
+                                                            if (part.startsWith('**') && part.endsWith('**')) {
+                                                                return <strong key={partIdx} style={{ fontWeight: 800, color: msg.role === 'user' ? 'inherit' : 'var(--text-main)' }}>{part.slice(2, -2)}</strong>
+                                                            }
+                                                            return part
+                                                        })}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                                <div ref={messagesEndRef} />
-                            </div>
-                        )}
-                    </div>
+                                    ))}
+                                    {loading && (
+                                        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                                            <div style={{ padding: '0.875rem 1.25rem', background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border-color)', display: 'flex', gap: '4px' }}>
+                                                <div className="animate-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-muted)' }}></div>
+                                                <div className="animate-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-muted)', animationDelay: '0.2s' }}></div>
+                                                <div className="animate-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-muted)', animationDelay: '0.4s' }}></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div ref={messagesEndRef} />
+                                </div>
+                            )}
+                        </div>
 
-                    {/* Input Area */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
-                        {selectedNotes.length > 0 && (
-                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0 0.5rem' }}>
-                                {selectedNotes.map(n => (
-                                    <div key={n.id} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem 0.625rem', background: 'var(--blue-50)', color: 'var(--primary)', borderRadius: 'var(--radius-lg)', fontSize: '0.75rem', fontWeight: 600, border: '1px solid var(--primary)' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>description</span>
-                                        <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</span>
-                                        <button onClick={() => toggleNoteSelection(n)} style={{ color: 'var(--primary)', display: 'flex' }}><span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>close</span></button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-                            <button 
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={uploading}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '2.75rem', height: '2.75rem', borderRadius: 'var(--radius-xl)', background: 'var(--bg-hover)', border: 'none', color: 'var(--text-light)', cursor: 'pointer' }}
-                            >
-                                <span className={`material-symbols-outlined ${uploading ? 'animate-spin' : ''}`}>
-                                    {uploading ? 'sync' : 'add_circle'}
-                                </span>
-                            </button>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                onChange={handleFileUpload}
-                                style={{ display: 'none' }}
-                                accept="audio/*"
-                            />
-                            <input
-                                type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                placeholder={t('chat.placeholder')}
-                                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', padding: '0.75rem 0.5rem', fontSize: '1rem', color: 'var(--text-main)' }}
-                            />
-                            <button 
-                                type="submit"
-                                disabled={!inputValue.trim() || loading || uploading}
-                                title={t('chat.send')}
-                                style={{ 
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                    width: '2.75rem', height: '2.75rem', borderRadius: 'var(--radius-xl)', 
-                                    background: !inputValue.trim() || loading || uploading ? 'var(--slate-300)' : 'var(--primary)',
-                                    color: 'var(--primary-invert)', border: 'none', cursor: 'pointer',
-                                    transition: 'all 0.2s', flexShrink: 0
-                                }}
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>send</span>
-                            </button>
-                        </form>
+                        {/* Input Area */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
+                            {selectedNotes.length > 0 && (
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0 0.5rem' }}>
+                                    {selectedNotes.map(n => (
+                                        <div key={n.id} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem 0.625rem', background: 'var(--blue-50)', color: 'var(--primary)', borderRadius: 'var(--radius-lg)', fontSize: '0.75rem', fontWeight: 600, border: '1px solid var(--primary)' }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>description</span>
+                                            <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</span>
+                                            <button onClick={() => toggleNoteSelection(n)} style={{ color: 'var(--primary)', display: 'flex' }}><span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>close</span></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+                                <button 
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={uploading}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '2.75rem', height: '2.75rem', borderRadius: 'var(--radius-xl)', background: 'var(--bg-hover)', border: 'none', color: 'var(--text-light)', cursor: 'pointer' }}
+                                >
+                                    <span className={`material-symbols-outlined ${uploading ? 'animate-spin' : ''}`}>
+                                        {uploading ? 'sync' : 'add_circle'}
+                                    </span>
+                                </button>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    onChange={handleFileUpload}
+                                    style={{ display: 'none' }}
+                                    accept="audio/*"
+                                />
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    placeholder={t('chat.placeholder')}
+                                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', padding: '0.75rem 0.5rem', fontSize: '1rem', color: 'var(--text-main)' }}
+                                />
+                                <button 
+                                    type="submit"
+                                    disabled={!inputValue.trim() || loading || uploading}
+                                    title={t('chat.send')}
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                        width: '2.75rem', height: '2.75rem', borderRadius: 'var(--radius-xl)', 
+                                        background: !inputValue.trim() || loading || uploading ? 'var(--slate-300)' : 'var(--primary)',
+                                        color: 'var(--primary-invert)', border: 'none', cursor: 'pointer',
+                                        transition: 'all 0.2s', flexShrink: 0
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>send</span>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
@@ -379,6 +547,14 @@ export default function ChatPage() {
                         </div>
                     </div>
                 )}
+
+                <style jsx>{`
+                    @media (max-width: 768px) {
+                        .chat-history-sidebar {
+                            display: none !important;
+                        }
+                    }
+                `}</style>
             </main>
         </>
     )

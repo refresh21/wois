@@ -1096,3 +1096,50 @@ ul {
     height: 2.75rem !important;
   }
 }
+
+/* ============================= */
+/* ===== CHAT SIDEBAR ===== */
+/* ============================= */
+.chat-history-sidebar {
+  width: 240px;
+  background: var(--bg-card);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .chat-history-sidebar {
+    display: none !important;
+  }
+}
+
+.chat-history-item {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.2s;
+}
+
+.chat-history-item:hover {
+  background: var(--bg-hover);
+}
+
+.chat-history-item.active {
+  background: var(--bg-hover);
+  color: var(--primary);
+  font-weight: 700;
+}

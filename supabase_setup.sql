@@ -84,3 +84,40 @@ CREATE POLICY "Users can insert their own settings" ON user_settings
 
 CREATE POLICY "Users can update their own settings" ON user_settings
   FOR UPDATE USING (auth.uid() = user_id);
+
+-- 5. Chats and Chat Messages for persistence
+CREATE TABLE IF NOT EXISTS chats (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL DEFAULT 'New Conversation',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Index for performance
+CREATE INDEX IF NOT EXISTS chats_user_id_idx ON chats(user_id);
+CREATE INDEX IF NOT EXISTS chat_messages_chat_id_idx ON chat_messages(chat_id);
+
+-- Enable RLS
+ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+
+-- Policies for chats
+CREATE POLICY "Users can view their own chats" ON chats FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own chats" ON chats FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own chats" ON chats FOR DELETE USING (auth.uid() = user_id);
+
+-- Policies for chat_messages
+CREATE POLICY "Users can view messages of their chats" ON chat_messages
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert messages to their chats" ON chat_messages
+  FOR INSERT WITH CHECK (auth.uid() = user_id);

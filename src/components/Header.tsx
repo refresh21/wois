@@ -82,7 +82,7 @@ export default function Header() {
                     }}
                 >
                     <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>translate</span>
-                    {locale === 'tr' ? 'English' : 'Türkçe'}
+                    {locale === 'tr' ? 'EN' : 'TR'}
                 </button>
             </div>
         </header>
