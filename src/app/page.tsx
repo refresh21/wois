@@ -25,7 +25,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ total: 0, audioCount: 0, mediaCount: 0 })
   const [driveConnected, setDriveConnected] = useState(false)
-  const { userName, user } = useAuth()
+  const { userName, user, loading: authLoading } = useAuth()
   const { t, locale } = useLanguage()
 
   const hour = new Date().getHours()
@@ -33,9 +33,11 @@ export default function Dashboard() {
   const greeting = t(greetingKey)
 
   useEffect(() => {
-    fetchNotes()
-    checkDriveStatus()
-  }, [])
+    if (!authLoading) {
+      fetchNotes()
+      checkDriveStatus()
+    }
+  }, [user, authLoading])
 
   const checkDriveStatus = () => {
     const token = localStorage.getItem('google_access_token')
