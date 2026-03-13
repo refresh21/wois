@@ -9,7 +9,7 @@ import { useLanguage } from '@/components/LanguageContext'
 import { useToast } from '@/components/ToastContext'
 import LoginModal from '@/components/LoginModal'
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 interface Note {
     id: string
@@ -28,6 +28,7 @@ interface ChatHistory {
     id: string
     title: string
     updated_at: string
+    is_pinned?: boolean
 }
 
 export default function ChatPage() {
@@ -415,6 +416,8 @@ export default function ChatPage() {
                             </button>
                         </div>
                         <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+                            {loadingHistory ? (
+                                <p style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>Yükleniyor...</p>
                             ) : (
                                 chats.map(c => (
                                     <div 
@@ -457,6 +460,7 @@ export default function ChatPage() {
                                     </div>
                                 ))
                             )}
+                        </div>
                     </div>
 
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -673,6 +677,9 @@ export default function ChatPage() {
                     }
                     .chat-history-item:hover .chat-actions {
                         opacity: 1;
+                    }
+                    .chat-actions button:hover {
+                        transform: scale(1.1);
                     }
                 `}</style>
             </main>
