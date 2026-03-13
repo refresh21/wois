@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const maxDuration = 60 // 60 seconds timeout
+
 export async function POST(req: NextRequest) {
     try {
         const { text, mediaUrl } = await req.json()
@@ -13,7 +15,7 @@ export async function POST(req: NextRequest) {
                 role: 'system',
                 content: `Sen profesyonel bir analiz asistanısın. Gelen metni veya görseli inceleyerek ÇOK DETAYLI, UZUN ve KAPSAMLI bir özet çıkaracaksın. 
 Özeti yüzeysel yapmaktan kaçın, metindeki veya görseldeki tüm ince detayları, argümanları ve vurguları yakala.
-Ayrıca, en önemli kısımları **kalın (bold)** metinlerle vurgula ki okuyucunun dikkatini hemen çeksin.
+Ayrıca, en önemli kısımları **kalın (bold)** metinlerle vurgula. Sadece çift yıldız (**) kullan, üç yıldız (***) kullanma.
 
 Lütfen aşağıdaki yapıyı tam olarak takip ederek raporunu oluştur:
 1. **Genel Bakış** - Konunun veya belgenin ne hakkında olduğuyla ilgili kapsamlı ve detaylı bir giriş.
@@ -55,22 +57,43 @@ Cevap dilin HER ZAMAN TÜRKÇE olmalıdır. Lütfen sıradan bir özet yerine an
         })
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => null)
-            const errorText = errorData ? JSON.stringify(errorData) : await response.text()
-            console.error('OpenRouter Summary error:', errorText)
+            const errorText = await response.text().catch(() => 'Unknown error')
+            console.error('OpenRouter Summary error (Status:', response.status, '):', errorText)
+            
+            let details = errorText
+            try {
+                const errorJson = JSON.parse(errorText)
+                details = JSON.stringify(errorJson)
+            } catch (e) {}
+
             return NextResponse.json({ 
                 error: 'Summarization failed', 
-                message: `Özetleme sırasında bir hata oluştu (Kod: ${response.status}). Lütfen tekrar deneyin.`,
-                details: errorText 
+                message: `Özetleme sırasında bir hata oluştu (Kod: ${response.status}).`,
+                details: details 
             }, { status: response.status })
         }
 
-        const data = await response.json()
+        const rawData = await response.text()
+        let data: any
+        try {
+            data = JSON.parse(rawData)
+        } catch (err) {
+            console.error('OpenRouter returned non-JSON response:', rawData)
+            return NextResponse.json({ 
+                error: 'Invalid response from AI service', 
+                message: 'Yapay zeka servisi geçersiz bir yanıt döndürdü.',
+                details: rawData.substring(0, 500)
+            }, { status: 502 })
+        }
+
         const summary = data.choices?.[0]?.message?.content || 'No summary generated'
 
         return NextResponse.json({ summary })
     } catch (error: any) {
-        console.error('Summarization error:', error)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        console.error('Summarization server error:', error)
+        return NextResponse.json({ 
+            error: 'Internal server error',
+            message: error.message 
+        }, { status: 500 })
     }
 }

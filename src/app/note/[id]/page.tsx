@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 // We will require pdfmake inside the handlers to bypass ESM proxies
 import Link from 'next/link'
+import FormattedText from '@/components/FormattedText'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import { useToast } from '@/components/ToastContext'
@@ -97,11 +98,30 @@ export default function NoteDetailPage() {
             }
 
             const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-            const data = await res.json()
-            if (data.summary) { await supabase.from('notes').update({ summary: data.summary }).eq('id', note.id); setNote(prev => prev ? { ...prev, summary: data.summary } : null); showToast(t('common.success'), 'success'); }
-            else showToast(t('common.error') + ': ' + (data.details || data.error || 'Bilinmeyen hata'), 'error')
-        } catch (err: any) { showToast(t('common.error') + ': ' + err.message, 'error') }
-        finally { setSummarizing(false) }
+            
+            const rawText = await res.text()
+            let data: any
+            try {
+                data = JSON.parse(rawText)
+            } catch (e) {
+                console.error('Summarize raw response:', rawText)
+                showToast(t('common.error') + ': Servis yanıtı geçersiz (JSON hatası).', 'error')
+                setSummarizing(false)
+                return
+            }
+
+            if (res.ok && data.summary) { 
+                await supabase.from('notes').update({ summary: data.summary }).eq('id', note.id); 
+                setNote(prev => prev ? { ...prev, summary: data.summary } : null); 
+                showToast(t('common.success'), 'success'); 
+            } else {
+                showToast(t('common.error') + ': ' + (data.message || data.error || 'Bilinmeyen hata'), 'error')
+            }
+        } catch (err: any) { 
+            showToast(t('common.error') + ': ' + err.message, 'error') 
+        } finally { 
+            setSummarizing(false) 
+        }
     }
 
     const handleNotesChange = (text: string) => {
@@ -551,7 +571,10 @@ export default function NoteDetailPage() {
                                             <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>{savingSummary ? 'hourglass_empty' : 'cloud_upload'}</span> Save to Drive
                                         </button>
                                     </div>
-                                    <div style={{ color: 'var(--slate-700)', fontSize: '1rem', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{note.summary}</div>
+                                    <FormattedText 
+                                        text={note.summary} 
+                                        style={{ color: 'var(--slate-700)', fontSize: '1rem', lineHeight: 1.8 }} 
+                                    />
                                     <button onClick={handleSummarize} disabled={summarizing} style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                         <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>refresh</span> {summarizing ? 'Regenerating...' : 'Regenerate'}
                                     </button>

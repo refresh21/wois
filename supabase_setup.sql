@@ -1,11 +1,12 @@
--- Run this SQL in the Supabase SQL Editor
--- https://lqhxkdgtlryxurqjerop.supabase.co → SQL Editor → New Query
+-- # WOIS AI - TAM SUPABASE KURULUM SQL
+-- Bu sorguyu Supabase SQL Editor üzerinden "New Query" diyerek yapıştırın ve çalıştırın.
+-- https://supabase.com/dashboard/project/lqhxkdgtlryxurqjerop/sql/new
 
--- !!! EĞER "user_id column not found" HATASI ALIYORSANIZ AŞAĞIDAKİ 2 SATIRI ÇALIŞTIRIN !!!
--- ALTER TABLE notes ADD COLUMN IF NOT EXISTS user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE;
--- NOTIFY pgrst, 'reload schema';
+-- ---------------------------------------------------------
+-- 1. TABLOLARIN OLUŞTURULMASI
+-- ---------------------------------------------------------
 
--- 1. Notes table
+-- Notlar Tablosu
 CREATE TABLE IF NOT EXISTS notes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -21,79 +22,17 @@ CREATE TABLE IF NOT EXISTS notes (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Index for performance
-CREATE INDEX IF NOT EXISTS notes_user_id_idx ON notes(user_id);
-
--- 2. Enable RLS and restrict access to owner
-ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
-
--- Drop existing generic policy
-DROP POLICY IF EXISTS "Allow all operations" ON notes;
-
--- Create owner-only policies
-CREATE POLICY "Users can view their own notes" ON notes
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create their own notes" ON notes
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own notes" ON notes
-  FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own notes" ON notes
-  FOR DELETE USING (auth.uid() = user_id);
-
--- 3. Storage: Create buckets and policies
--- After running this SQL, go to Supabase Dashboard → Storage:
--- Create bucket "recordings" → Set to PUBLIC
--- Create bucket "media" → Set to PUBLIC
--- Then run the following to allow uploads:
-
--- Allow public uploads to recordings bucket
-INSERT INTO storage.buckets (id, name, public) VALUES ('recordings', 'recordings', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('media', 'media', true) ON CONFLICT (id) DO NOTHING;
-
--- Storage policies for recordings bucket
-CREATE POLICY "Allow public read recordings" ON storage.objects FOR SELECT USING (bucket_id = 'recordings');
-CREATE POLICY "Allow public insert recordings" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'recordings');
-CREATE POLICY "Allow public update recordings" ON storage.objects FOR UPDATE USING (bucket_id = 'recordings');
-CREATE POLICY "Allow public delete recordings" ON storage.objects FOR DELETE USING (bucket_id = 'recordings');
-
--- Storage policies for media bucket
-CREATE POLICY "Allow public read media" ON storage.objects FOR SELECT USING (bucket_id = 'media');
-CREATE POLICY "Allow public insert media" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media');
-CREATE POLICY "Allow public update media" ON storage.objects FOR UPDATE USING (bucket_id = 'media');
-CREATE POLICY "Allow public delete media" ON storage.objects FOR DELETE USING (bucket_id = 'media');
--- 4. User Settings: Store Google Drive tokens
-CREATE TABLE IF NOT EXISTS user_settings (
-  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  google_refresh_token TEXT,
-  google_drive_connected BOOLEAN DEFAULT false,
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Enable RLS
-ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
-
--- Policies for user_settings
-CREATE POLICY "Users can view their own settings" ON user_settings
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own settings" ON user_settings
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own settings" ON user_settings
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- 5. Chats and Chat Messages for persistence
+-- Sohbetler (Konuşma Başlıkları) Tablosu
 CREATE TABLE IF NOT EXISTS chats (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL DEFAULT 'New Conversation',
+  title TEXT NOT NULL DEFAULT 'Yeni Sohbet',
+  is_pinned BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Sohbet Mesajları Tablosu
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
@@ -103,21 +42,84 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Index for performance
-CREATE INDEX IF NOT EXISTS chats_user_id_idx ON chats(user_id);
-CREATE INDEX IF NOT EXISTS chat_messages_chat_id_idx ON chat_messages(chat_id);
+-- Kullanıcı Ayarları (Drive Token vb.) Tablosu
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  google_refresh_token TEXT,
+  google_drive_connected BOOLEAN DEFAULT false,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
--- Enable RLS
+-- ---------------------------------------------------------
+-- 2. GÜVENLİK (RLS - ROW LEVEL SECURITY)
+-- ---------------------------------------------------------
+
+-- RLS'i Etkinleştir
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
--- Policies for chats
-CREATE POLICY "Users can view their own chats" ON chats FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their own chats" ON chats FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own chats" ON chats FOR DELETE USING (auth.uid() = user_id);
+-- Mevcut politikaları temizle (Hata almamak için)
+DROP POLICY IF EXISTS "Users can only see their own notes" ON notes;
+DROP POLICY IF EXISTS "Users can only insert their own notes" ON notes;
+DROP POLICY IF EXISTS "Users can only update their own notes" ON notes;
+DROP POLICY IF EXISTS "Users can only delete their own notes" ON notes;
+DROP POLICY IF EXISTS "SohbetOku" ON chats;
+DROP POLICY IF EXISTS "SohbetYaz" ON chats;
+DROP POLICY IF EXISTS "SohbetSil" ON chats;
+DROP POLICY IF EXISTS "MesajOku" ON chat_messages;
+DROP POLICY IF EXISTS "MesajYaz" ON chat_messages;
+DROP POLICY IF EXISTS "SettingsManage" ON user_settings;
 
--- Policies for chat_messages
-CREATE POLICY "Users can view messages of their chats" ON chat_messages
-  FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert messages to their chats" ON chat_messages
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Notlar Politikaları
+CREATE POLICY "NotesSelect" ON notes FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "NotesInsert" ON notes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "NotesUpdate" ON notes FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "NotesDelete" ON notes FOR DELETE USING (auth.uid() = user_id);
+
+-- Sohbet Politikaları
+CREATE POLICY "SohbetOku" ON chats FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "SohbetYaz" ON chats FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "SohbetYonet" ON chats FOR ALL USING (auth.uid() = user_id);
+
+-- Mesaj Politikaları
+CREATE POLICY "MesajOku" ON chat_messages FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "MesajYaz" ON chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Ayarlar Politikaları
+CREATE POLICY "SettingsManage" ON user_settings FOR ALL USING (auth.uid() = user_id);
+
+-- ---------------------------------------------------------
+-- 3. DEPOLAMA (STORAGE) BUCKETS & POLICIES
+-- ---------------------------------------------------------
+
+-- Bucketları oluştur
+INSERT INTO storage.buckets (id, name, public) VALUES ('recordings', 'recordings', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('media', 'media', true) ON CONFLICT (id) DO NOTHING;
+
+-- Depolama Politikaları (Kayıtlar)
+DROP POLICY IF EXISTS "Allow select recordings" ON storage.objects;
+DROP POLICY IF EXISTS "Allow insert recordings" ON storage.objects;
+CREATE POLICY "Allow select recordings" ON storage.objects FOR SELECT USING (bucket_id = 'recordings');
+CREATE POLICY "Allow insert recordings" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'recordings');
+CREATE POLICY "Allow manage recordings" ON storage.objects FOR ALL USING (bucket_id = 'recordings' AND auth.uid() IS NOT NULL);
+
+-- Depolama Politikaları (Medya)
+DROP POLICY IF EXISTS "Allow select media" ON storage.objects;
+DROP POLICY IF EXISTS "Allow insert media" ON storage.objects;
+CREATE POLICY "Allow select media" ON storage.objects FOR SELECT USING (bucket_id = 'media');
+CREATE POLICY "Allow insert media" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media');
+CREATE POLICY "Allow manage media" ON storage.objects FOR ALL USING (bucket_id = 'media' AND auth.uid() IS NOT NULL);
+
+-- ---------------------------------------------------------
+-- 4. INDEKSLER & PERFORMANS
+-- ---------------------------------------------------------
+
+CREATE INDEX IF NOT EXISTS notes_user_id_idx ON notes(user_id);
+CREATE INDEX IF NOT EXISTS chats_user_id_idx ON chats(user_id);
+CREATE INDEX IF NOT EXISTS chat_messages_chat_id_idx ON chat_messages(chat_id);
+CREATE INDEX IF NOT EXISTS idx_chats_is_pinned ON chats(is_pinned DESC, updated_at DESC);
+
+-- Şemayı yenile
+NOTIFY pgrst, 'reload schema';

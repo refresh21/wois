@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastContext'
 import { useAuth } from '@/components/AuthContext'
 import { useLanguage } from '@/components/LanguageContext'
+import FormattedText from '@/components/FormattedText'
 
 interface Note {
     id: string
@@ -103,8 +104,19 @@ export default function SummarizePage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: textToSummarize }),
             })
-            const data = await res.json()
-            if (data.summary && res.ok) {
+            
+            const rawText = await res.text()
+            let data: any
+            try {
+                data = JSON.parse(rawText)
+            } catch (e) {
+                console.error('Summarize raw response:', rawText)
+                showToast('Özetleme hatası: Servis yanıtı geçersiz (JSON hatası).', 'error')
+                setSummarizing(false)
+                return
+            }
+
+            if (res.ok && data.summary) {
                 setSummaryResult(data.summary)
                 showToast('Özetleme tamamlandı', 'success')
             } else {
@@ -423,9 +435,10 @@ export default function SummarizePage() {
                                     <span className="material-symbols-outlined" style={{ fontSize: '1.125rem', color: '#8b5cf6' }}>auto_awesome</span>
                                     <h4 style={{ fontWeight: 700, fontSize: '0.9375rem' }}>AI Özet</h4>
                                 </div>
-                                <div style={{ padding: '1.25rem', fontSize: '0.9375rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                                    {summaryResult}
-                                </div>
+                                <FormattedText 
+                                    text={summaryResult} 
+                                    style={{ padding: '1.25rem', fontSize: '0.9375rem', lineHeight: 1.7 }} 
+                                />
                                 <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '0.5rem' }}>
                                     <button
                                         onClick={handleSaveSummary}

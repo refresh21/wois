@@ -48,13 +48,15 @@ export default function MemoryPage() {
     }
 
     const deleteNote = async (id: string) => {
-        await supabase.from('notes').delete().eq('id', id)
+        if (!user) return
+        await supabase.from('notes').delete().eq('id', id).eq('user_id', user.id)
         setNotes(prev => prev.filter(n => n.id !== id))
     }
 
     const deleteAllNotes = async () => {
+        if (!user) return
         if (!window.confirm('Emin misiniz? Tüm notlar ve yüklü dosyalar kalıcı olarak silinecek.')) return
-        await supabase.from('notes').delete().neq('id', '0') // Delete all rows
+        await supabase.from('notes').delete().eq('user_id', user.id)
         setNotes([])
     }
 
