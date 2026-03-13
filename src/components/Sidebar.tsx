@@ -18,6 +18,7 @@ export default function Sidebar() {
         { href: '/upload', label: t('nav.upload'), icon: 'upload_file' },
         { href: '/summarize', label: t('nav.summarize'), icon: 'auto_awesome' },
         { href: '/memory', label: t('nav.memory'), icon: 'inventory_2' },
+        { href: '/chat', label: t('nav.chat'), icon: 'psychology' },
         { href: '/drive', label: t('nav.google_drive'), icon: 'cloud' },
     ]
 
