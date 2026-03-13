@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    if (!supabaseUrl || !supabaseServiceKey) {
+        return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 })
+    }
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const { id } = await params
 
@@ -31,6 +34,9 @@ export async function POST(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    if (!supabaseUrl || !supabaseServiceKey) {
+        return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 })
+    }
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const { id } = await params
     const { role, content, userId } = await req.json()
@@ -70,6 +76,9 @@ export async function DELETE(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    if (!supabaseUrl || !supabaseServiceKey) {
+        return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 })
+    }
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const { id } = await params
 
