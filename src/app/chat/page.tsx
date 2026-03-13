@@ -319,7 +319,7 @@ export default function ChatPage() {
                                 <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>psychology</span>
                             </div>
                             <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>{t('nav.chat')}</h2>
-                            <p style={{ color: 'var(--text-light)', marginBottom: '2rem' }}>Voice Asistanı ile notlarınız üzerine sohbet edin.</p>
+                            <p style={{ color: 'var(--text-light)', marginBottom: '2rem' }}>Wois'e Sor ile notlarınız üzerine sohbet edin.</p>
                             <button onClick={() => setShowLoginModal(true)} className="btn-primary" style={{ width: '100%' }}>{t('auth.login_google')}</button>
                         </div>
                     </div>
@@ -379,7 +379,7 @@ export default function ChatPage() {
                                     <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>psychology</span>
                                 </div>
                                 <div>
-                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.025em' }}>Voice Asistanı</h2>
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.025em' }}>Wois'e Sor</h2>
                                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Derinlemesine öğretici analizler</p>
                                 </div>
                             </div>
@@ -421,7 +421,7 @@ export default function ChatPage() {
                             {messages.length === 0 ? (
                                 <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', textAlign: 'center', opacity: 0.6 }}>
                                     <span className="material-symbols-outlined" style={{ fontSize: '4rem', marginBottom: '1rem' }}>forum</span>
-                                    <p style={{ fontWeight: 600 }}>Voice Asistanı</p>
+                                    <p style={{ fontWeight: 600 }}>Wois'e Sor</p>
                                     <p style={{ fontSize: '0.875rem' }}>Sohbete başlamak için bir mesaj yazın veya hafızadan not seçin.</p>
                                     {selectedNotes.length === 0 && (
                                         <div style={{ marginTop: '1.5rem', padding: '0.75rem 1rem', background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', fontSize: '0.8125rem', border: '1px solid var(--border-color)' }}>
