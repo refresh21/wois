@@ -4,6 +4,11 @@ export async function POST(req: NextRequest) {
     try {
         const { messages, context } = await req.json()
 
+        if (!process.env.OPENROUTER_API_KEY) {
+            console.error('OPENROUTER_API_KEY is missing')
+            return NextResponse.json({ error: 'OpenRouter API Key defined değil' }, { status: 500 })
+        }
+
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: 'Invalid messages' }, { status: 400 })
         }

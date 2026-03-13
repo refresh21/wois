@@ -90,7 +90,8 @@ export default function ChatPage() {
             if (data.message) {
                 setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
             } else {
-                showToast(t('common.error'), 'error')
+                const errorMsg = data.details?.error?.message || data.error || t('common.error')
+                showToast(errorMsg, 'error')
             }
         } catch (err: any) {
             showToast(err.message, 'error')
@@ -309,16 +310,16 @@ export default function ChatPage() {
                             <button 
                                 type="submit"
                                 disabled={!inputValue.trim() || loading || uploading}
+                                title={t('chat.send')}
                                 style={{ 
-                                    display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                                    padding: '0 1.5rem', borderRadius: 'var(--radius-xl)', 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                    width: '2.75rem', height: '2.75rem', borderRadius: 'var(--radius-xl)', 
                                     background: !inputValue.trim() || loading || uploading ? 'var(--slate-300)' : 'var(--primary)',
-                                    color: 'var(--primary-invert)', fontWeight: 700, border: 'none', cursor: 'pointer',
-                                    transition: 'all 0.2s'
+                                    color: 'var(--primary-invert)', border: 'none', cursor: 'pointer',
+                                    transition: 'all 0.2s', flexShrink: 0
                                 }}
                             >
-                                <span className="material-symbols-outlined">{t('chat.send')}</span>
-                                {t('chat.send')}
+                                <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>send</span>
                             </button>
                         </form>
                     </div>
