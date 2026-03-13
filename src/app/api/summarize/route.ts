@@ -47,7 +47,7 @@ Cevap dilin HER ZAMAN TÜRKÇE olmalıdır. Lütfen sıradan bir özet yerine an
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'meta-llama/llama-3.1-8b-instruct:free',
+                model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
                 messages: messages,
             }),
         })
