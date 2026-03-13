@@ -5,6 +5,8 @@ import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastContext'
+import { useAuth } from '@/components/AuthContext'
+import { useLanguage } from '@/components/LanguageContext'
 
 interface Note {
     id: string
@@ -17,6 +19,9 @@ interface Note {
 
 export default function SummarizePage() {
     const { showToast } = useToast()
+    const { user, loading: authLoading, signInWithGoogle } = useAuth()
+    const { t, locale } = useLanguage()
+
     const [tab, setTab] = useState<'upload' | 'memory'>('upload')
     const [notes, setNotes] = useState<Note[]>([])
     const [selectedNotes, setSelectedNotes] = useState<string[]>([])
@@ -30,18 +35,23 @@ export default function SummarizePage() {
     const [fileName, setFileName] = useState('')
 
     useEffect(() => {
-        if (tab === 'memory') fetchNotes()
-    }, [tab])
+        if (tab === 'memory' && user) fetchNotes()
+    }, [tab, user])
 
     const fetchNotes = async () => {
+        if (!user) return
         setLoadingNotes(true)
-        const { data } = await supabase.from('notes').select('*').order('created_at', { ascending: false })
+        const { data } = await supabase
+            .from('notes')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
         setNotes(data || [])
         setLoadingNotes(false)
     }
 
     const toggleNote = (id: string) => {
-        setSelectedNotes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+        setSelectedNotes((prev: string[]) => prev.includes(id) ? prev.filter((x: string) => x !== id) : [...prev, id])
     }
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,8 +118,8 @@ export default function SummarizePage() {
     }
 
     const handleSummarizeFromMemory = () => {
-        const selected = notes.filter(n => selectedNotes.includes(n.id))
-        const combined = selected.map(n => {
+        const selected = notes.filter((n: Note) => selectedNotes.includes(n.id))
+        const combined = selected.map((n: Note) => {
             const parts = [`## ${n.title}`]
             if (n.transcript) parts.push(n.transcript)
             if (n.summary) parts.push(n.summary)
@@ -139,6 +149,7 @@ export default function SummarizePage() {
                 summary: summaryResult,
                 transcript: sourceText,
                 type: 'summary',
+                user_id: user?.id
             })
             if (error) {
                 showToast('Kaydetme hatası: ' + error.message, 'error')
@@ -155,13 +166,79 @@ export default function SummarizePage() {
         setSaving(false)
     }
 
-    const filteredNotes = notes.filter(n => {
+    const filteredNotes = notes.filter((n: Note) => {
         if (!searchQuery) return true
         const q = searchQuery.toLowerCase()
         return n.title.toLowerCase().includes(q) || n.transcript?.toLowerCase().includes(q)
     })
 
     const formatDate = (d: string) => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+
+    if (authLoading) {
+        return (
+            <>
+                <Sidebar />
+                <main className="main-area">
+                    <Header />
+                    <div className="page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+                        <div className="animate-pulse" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+                            <span className="material-symbols-outlined">hourglass_empty</span> {t('common.loading')}
+                        </div>
+                    </div>
+                </main>
+            </>
+        )
+    }
+
+    if (!user) {
+        return (
+            <>
+                <Sidebar />
+                <main className="main-area">
+                    <Header />
+                    <div className="page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+                        <div className="animate-fade-in-up" style={{ 
+                            background: 'var(--bg-card)', padding: '3rem 2rem', 
+                            borderRadius: 'var(--radius-2xl)', maxWidth: '450px', width: '100%',
+                            textAlign: 'center', border: '1px solid var(--border-color)',
+                            boxShadow: 'var(--shadow-xl)'
+                        }}>
+                            <div style={{ 
+                                width: '80px', height: '80px', borderRadius: '40px', 
+                                background: 'var(--blue-50)', color: 'var(--primary)', 
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                margin: '0 auto 1.5rem auto' 
+                            }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>lock</span>
+                            </div>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--text-main)' }}>
+                                {t('auth.login_required_title')}
+                            </h2>
+                            <p style={{ color: 'var(--text-light)', marginBottom: '2.5rem', lineHeight: 1.6, fontSize: '1rem' }}>
+                                {t('auth.login_required_desc')}
+                            </p>
+                            <button 
+                                onClick={signInWithGoogle}
+                                style={{ 
+                                    width: '100%', padding: '1rem', borderRadius: 'var(--radius-xl)', 
+                                    background: 'var(--primary)', color: 'white', fontWeight: 700, 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                    gap: '1rem', border: 'none', cursor: 'pointer', fontSize: '1.125rem',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                    transition: 'transform 0.2s'
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                            >
+                                <img src="https://www.google.com/favicon.ico" alt="Google" style={{ width: '24px', height: '24px' }} />
+                                {t('auth.login_google')}
+                            </button>
+                        </div>
+                    </div>
+                </main>
+            </>
+        )
+    }
 
     return (
         <>
@@ -288,7 +365,7 @@ export default function SummarizePage() {
                                         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                                             <p style={{ fontSize: '0.875rem' }}>Not bulunamadı</p>
                                         </div>
-                                    ) : filteredNotes.map(note => (
+                                    ) : filteredNotes.map((note: Note) => (
                                         <div
                                             key={note.id}
                                             onClick={() => toggleNote(note.id)}
